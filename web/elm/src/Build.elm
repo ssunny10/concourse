@@ -25,20 +25,16 @@ import Date exposing (Date)
 import Date.Format
 import Debug
 import Dict exposing (Dict)
-import Effects exposing (Effect(..), ScrollDirection(..), runEffect)
+import Effects exposing (Effect(..), ScrollDirection(..))
 import Html exposing (Html)
 import Html.Attributes
     exposing
-        ( action
-        , attribute
+        ( attribute
         , class
         , classList
-        , disabled
         , href
         , id
-        , method
         , style
-        , tabindex
         , title
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
@@ -46,13 +42,13 @@ import Html.Lazy
 import Http
 import LoadingIndicator
 import Maybe.Extra
-import RemoteData exposing (WebData)
+import RemoteData
 import Routes
 import Spinner
-import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
+import StrictEvents exposing (onLeftClick, onMouseWheel)
 import String
 import Subscription exposing (Subscription(..))
-import Time exposing (Time)
+import Time
 import UpdateMsg exposing (UpdateMsg)
 import Views
 
@@ -70,13 +66,6 @@ initJobBuildPage teamName pipelineName jobName buildName =
         , jobName = jobName
         , buildName = buildName
         }
-
-
-type StepRenderingState
-    = StepsLoading
-    | StepsLiveUpdating
-    | StepsComplete
-    | NotAuthorized
 
 
 type alias Flags =
@@ -226,16 +215,14 @@ handleCallback action model =
         BuildPrepFetched (Ok ( browsingIndex, buildPrep )) ->
             handleBuildPrepFetched browsingIndex buildPrep model
 
-        BuildPrepFetched (Err err) ->
-            flip always (Debug.log "failed to fetch build preparation" err) <|
-                ( model, [] )
+        BuildPrepFetched (Err _) ->
+            ( model, [] )
 
         PlanAndResourcesFetched buildId result ->
             updateOutput (Build.Output.planAndResourcesFetched buildId result) model
 
-        BuildHistoryFetched (Err err) ->
-            flip always (Debug.log "failed to fetch build history" err) <|
-                ( model, [] )
+        BuildHistoryFetched (Err _) ->
+            ( model, [] )
 
         BuildHistoryFetched (Ok history) ->
             handleHistoryFetched history model
@@ -243,17 +230,16 @@ handleCallback action model =
         BuildJobDetailsFetched (Ok job) ->
             handleBuildJobFetched job model
 
-        BuildJobDetailsFetched (Err err) ->
-            flip always (Debug.log "failed to fetch build job details" err) <|
-                ( model, [] )
+        BuildJobDetailsFetched (Err _) ->
+            ( model, [] )
 
         _ ->
             ( model, [] )
 
 
 update : Msg -> Model -> ( Model, List Effect )
-update action model =
-    case action of
+update msg model =
+    case msg of
         SwitchToBuild build ->
             ( model, [ NavigateTo <| Routes.buildRoute build ] )
 
@@ -279,27 +265,33 @@ update action model =
         AbortBuild buildId ->
             ( model, [ DoAbortBuild buildId model.csrfToken ] )
 
-        BuildEventsMsg action ->
-            updateOutput (Build.Output.handleEventsMsg action) model
+        BuildEventsMsg eventsMsg ->
+            updateOutput (Build.Output.handleEventsMsg eventsMsg) model
 
-        ToggleStep id ->
+        ToggleStep stepId ->
             updateOutput
-                (Build.Output.handleStepTreeMsg <| StepTree.toggleStep id)
+                (Build.Output.handleStepTreeMsg <| StepTree.toggleStep stepId)
                 model
 
-        SwitchTab id tab ->
+        SwitchTab stepId tab ->
             updateOutput
-                (Build.Output.handleStepTreeMsg <| StepTree.switchTab id tab)
+                (Build.Output.handleStepTreeMsg <|
+                    StepTree.switchTab stepId tab
+                )
                 model
 
-        SetHighlight id line ->
+        SetHighlight stepId line ->
             updateOutput
-                (Build.Output.handleStepTreeMsg <| StepTree.setHighlight id line)
+                (Build.Output.handleStepTreeMsg <|
+                    StepTree.setHighlight stepId line
+                )
                 model
 
-        ExtendHighlight id line ->
+        ExtendHighlight stepId line ->
             updateOutput
-                (Build.Output.handleStepTreeMsg <| StepTree.extendHighlight id line)
+                (Build.Output.handleStepTreeMsg <|
+                    StepTree.extendHighlight stepId line
+                )
                 model
 
         RevealCurrentBuildInHistory ->
@@ -529,8 +521,8 @@ handleBuildFetched browsingIndex build model =
                         , output = Nothing
                         }
 
-                    Just currentBuild ->
-                        { currentBuild | build = build }
+                    Just cb ->
+                        { cb | build = build }
 
             withBuild =
                 { model
@@ -548,7 +540,7 @@ handleBuildFetched browsingIndex build model =
                     _ ->
                         []
 
-            ( newModel, cmd ) =
+            ( newModel, effects ) =
                 if build.status == Concourse.BuildStatusPending then
                     ( withBuild, pollUntilStarted browsingIndex build.id )
 
@@ -563,11 +555,11 @@ handleBuildFetched browsingIndex build model =
 
                         Just _ ->
                             let
-                                ( newModel, cmd ) =
+                                ( initedWithBuild, withBuildEffects ) =
                                     initBuildOutput build withBuild
                             in
-                            ( newModel
-                            , cmd
+                            ( initedWithBuild
+                            , withBuildEffects
                                 ++ [ FetchBuildPrep
                                         Time.second
                                         browsingIndex
@@ -579,7 +571,7 @@ handleBuildFetched browsingIndex build model =
                     ( withBuild, [] )
         in
         ( newModel
-        , cmd
+        , effects
             ++ [ SetFavIcon (Just build.status)
                , SetTitle (extractTitle newModel)
                ]
@@ -601,7 +593,7 @@ initBuildOutput : Concourse.Build -> Model -> ( Model, List Effect )
 initBuildOutput build model =
     let
         ( output, outputCmd ) =
-            Build.Output.init { highlight = model.highlight } build
+            Build.Output.init model.highlight build
     in
     ( { model
         | currentBuild =
@@ -647,7 +639,7 @@ handleHistoryFetched history model =
         ( Just page, Just job ) ->
             ( withBuilds, [ FetchBuildHistory job (Just page) ] )
 
-        ( Just url, Nothing ) ->
+        ( Just _, Nothing ) ->
             Debug.crash "impossible"
 
 
@@ -682,8 +674,7 @@ view model =
                 [ viewBuildHeader currentBuild.build model
                 , Html.div [ class "scrollable-body build-body" ] <|
                     [ viewBuildPrep currentBuild.prep
-                    , Html.Lazy.lazy2 viewBuildOutput currentBuild.build <|
-                        currentBuild.output
+                    , Html.Lazy.lazy viewBuildOutput currentBuild.output
                     , Html.div
                         [ classList
                             [ ( "keyboard-help", True )
@@ -830,19 +821,22 @@ mmDDYY d =
     Date.Format.format "%m/%d/" d ++ String.right 2 (Date.Format.format "%Y" d)
 
 
-viewBuildOutput : Concourse.Build -> Maybe OutputModel -> Html Msg
-viewBuildOutput build output =
+viewBuildOutput : Maybe OutputModel -> Html Msg
+viewBuildOutput output =
     case output of
         Just o ->
-            Build.Output.view build o
+            Build.Output.view o
 
         Nothing ->
             Html.div [] []
 
 
 viewBuildPrep : Maybe Concourse.BuildPrep -> Html Msg
-viewBuildPrep prep =
-    case prep of
+viewBuildPrep buildPrep =
+    case buildPrep of
+        Nothing ->
+            Html.div [] []
+
         Just prep ->
             Html.div [ class "build-step" ]
                 [ Html.div
@@ -873,9 +867,6 @@ viewBuildPrep prep =
                         )
                     ]
                 ]
-
-        Nothing ->
-            Html.div [] []
 
 
 viewBuildPrepInputs : Dict String Concourse.BuildPrepStatus -> List (Html Msg)
@@ -961,24 +952,10 @@ viewBuildHeader build { now, job, history, hoveredElement } =
     let
         triggerButton =
             case job of
-                Just { name, pipeline } ->
+                Just { disableManualTrigger } ->
                     let
-                        actionUrl =
-                            "/teams/"
-                                ++ pipeline.teamName
-                                ++ "/pipelines/"
-                                ++ pipeline.pipelineName
-                                ++ "/jobs/"
-                                ++ name
-                                ++ "/builds"
-
                         buttonDisabled =
-                            case job of
-                                Nothing ->
-                                    True
-
-                                Just job ->
-                                    job.disableManualTrigger
+                            disableManualTrigger
 
                         buttonHovered =
                             hoveredElement == Just Trigger
@@ -1119,11 +1096,6 @@ viewHistoryItem currentBuild build =
             [ Html.text build.name
             ]
         ]
-
-
-durationTitle : Date -> List (Html Msg) -> Html Msg
-durationTitle date content =
-    Html.div [ title (Date.Format.format "%b" date) ] content
 
 
 handleOutMsg : Build.Output.OutMsg -> Model -> ( Model, List Effect )

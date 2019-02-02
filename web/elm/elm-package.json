@@ -12,8 +12,6 @@
         "Bogdanp/elm-querystring": "1.0.0 <= v < 2.0.0",
         "NoRedInk/elm-simple-fuzzy": "1.0.2 <= v < 2.0.0",
         "arturopala/elm-monocle": "1.7.0 <= v < 2.0.0",
-        "elm-community/graph": "2.0.0 <= v < 3.0.0",
-        "elm-community/intdict": "2.0.0 <= v < 3.0.0",
         "elm-community/json-extra": "2.1.0 <= v < 3.0.0",
         "elm-community/list-extra": "6.1.0 <= v < 7.0.0",
         "elm-community/maybe-extra": "3.1.0 <= v < 4.0.0",

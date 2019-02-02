@@ -39,7 +39,7 @@ import DictView
 import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
-import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
+import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Routes exposing (showHighlight)
 import Spinner
 import StrictEvents
@@ -50,28 +50,33 @@ init :
     -> Concourse.BuildResources
     -> Concourse.BuildPlan
     -> StepTreeModel
-init hl resources plan =
-    case plan.step of
+init hl resources buildPlan =
+    case buildPlan.step of
         Concourse.BuildStepTask name ->
-            initBottom hl Task plan.id name
+            initBottom hl Task buildPlan.id name
 
         Concourse.BuildStepGet name version ->
             initBottom hl
                 (Get << setupGetStep resources name version)
-                plan.id
+                buildPlan.id
                 name
 
         Concourse.BuildStepPut name ->
-            initBottom hl Put plan.id name
+            initBottom hl Put buildPlan.id name
 
         Concourse.BuildStepAggregate plans ->
-            initMultiStep hl resources plan.id Aggregate plans
+            initMultiStep hl resources buildPlan.id Aggregate plans
 
         Concourse.BuildStepDo plans ->
-            initMultiStep hl resources plan.id Do plans
+            initMultiStep hl resources buildPlan.id Do plans
 
         Concourse.BuildStepRetry plans ->
-            initMultiStep hl resources plan.id (Retry plan.id 1 Auto) plans
+            initMultiStep
+                hl
+                resources
+                buildPlan.id
+                (Retry buildPlan.id 1 Auto)
+                plans
 
         Concourse.BuildStepOnSuccess hookedPlan ->
             initHookedStep hl resources OnSuccess hookedPlan
@@ -177,7 +182,7 @@ initWrappedStep hl resources create plan =
             init hl resources plan
     in
     { tree = create tree
-    , foci = Dict.map wrapStep foci
+    , foci = Dict.map (always wrapStep) foci
     , finished = False
     , highlight = hl
     , tooltip = Nothing
@@ -201,8 +206,8 @@ initHookedStep hl resources create hookedPlan =
     { tree = create { step = stepModel.tree, hook = hookModel.tree }
     , foci =
         Dict.union
-            (Dict.map wrapStep stepModel.foci)
-            (Dict.map wrapHook hookModel.foci)
+            (Dict.map (always wrapStep) stepModel.foci)
+            (Dict.map (always wrapHook) hookModel.foci)
     , finished = stepModel.finished
     , highlight = hl
     , tooltip = Nothing
@@ -210,8 +215,8 @@ initHookedStep hl resources create hookedPlan =
 
 
 treeIsActive : StepTree -> Bool
-treeIsActive tree =
-    case tree of
+treeIsActive stepTree =
+    case stepTree of
         Aggregate trees ->
             List.any treeIsActive (Array.toList trees)
 
@@ -408,13 +413,13 @@ wrapMultiStep i =
     Dict.map (\_ subFocus -> { update = \upd tree -> setMultiStepIndex i (subFocus.update upd) tree })
 
 
-wrapStep : StepID -> StepFocus -> StepFocus
-wrapStep id subFocus =
+wrapStep : StepFocus -> StepFocus
+wrapStep subFocus =
     { update = \upd tree -> updateStep (subFocus.update upd) tree }
 
 
-wrapHook : StepID -> StepFocus -> StepFocus
-wrapHook id subFocus =
+wrapHook : StepFocus -> StepFocus
+wrapHook subFocus =
     { update = \upd tree -> updateHook (subFocus.update upd) tree }
 
 
@@ -605,7 +610,7 @@ autoExpanded state =
 
 
 viewStep : StepTreeModel -> Step -> StepHeaderType -> Html Msg
-viewStep model { id, name, log, state, error, expanded, version, metadata, firstOccurrence, timestamps } headerType =
+viewStep model { id, name, log, state, error, expanded, version, metadata, timestamps } headerType =
     Html.div
         [ classList
             [ ( "build-step", True )

@@ -8,7 +8,7 @@ module Build.Output exposing
     )
 
 import Ansi.Log
-import Array exposing (Array)
+import Array
 import Build.Models
     exposing
         ( OutputModel
@@ -24,18 +24,13 @@ import Concourse
 import Concourse.BuildEvents
 import Concourse.BuildStatus
 import Date exposing (Date)
-import Dict exposing (Dict)
+import Dict
 import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes
     exposing
-        ( action
-        , class
-        , classList
-        , id
-        , method
+        ( class
         , style
-        , title
         )
 import Http
 import LoadingIndicator
@@ -48,12 +43,8 @@ type OutMsg
     | OutBuildStatus Concourse.BuildStatus Date
 
 
-type alias Flags =
-    { highlight : Build.Models.Highlight }
-
-
-init : Flags -> Concourse.Build -> ( OutputModel, List Effect )
-init { highlight } build =
+init : Build.Models.Highlight -> Concourse.Build -> ( OutputModel, List Effect )
+init highlight build =
     let
         outputState =
             if Concourse.BuildStatus.isRunning build.status then
@@ -85,12 +76,12 @@ handleStepTreeMsg :
     (StepTreeModel -> ( StepTreeModel, List Effect ))
     -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
-handleStepTreeMsg action model =
+handleStepTreeMsg msg model =
     case model.steps of
         Just st ->
             let
                 ( newModel, effects ) =
-                    action st
+                    msg st
             in
             ( { model | steps = Just newModel }, effects, OutNoop )
 
@@ -115,8 +106,7 @@ planAndResourcesFetched buildId result model =
                         model
 
                 _ ->
-                    flip always (Debug.log "failed to fetch plan" err) <|
-                        model
+                    model
 
         Ok ( plan, resources ) ->
             { model
@@ -132,8 +122,8 @@ handleEventsMsg :
     Concourse.BuildEvents.Msg
     -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
-handleEventsMsg action model =
-    case action of
+handleEventsMsg msg model =
+    case msg of
         Concourse.BuildEvents.Opened ->
             ( { model | eventSourceOpened = True }, [], OutNoop )
 
@@ -151,9 +141,8 @@ handleEventsMsg action model =
         Concourse.BuildEvents.Events (Ok events) ->
             Array.foldl handleEvent_ ( model, [], OutNoop ) events
 
-        Concourse.BuildEvents.Events (Err err) ->
-            flip always (Debug.log "failed to get event" err) <|
-                ( model, [], OutNoop )
+        Concourse.BuildEvents.Events (Err _) ->
+            ( model, [], OutNoop )
 
 
 handleEvent_ :
@@ -259,8 +248,8 @@ handleEvent event model =
 
 
 updateStep : StepID -> (StepTree -> StepTree) -> OutputModel -> OutputModel
-updateStep id update model =
-    { model | steps = Maybe.map (StepTree.updateAt id update) model.steps }
+updateStep stepId update model =
+    { model | steps = Maybe.map (StepTree.updateAt stepId update) model.steps }
 
 
 setRunning : StepTree -> StepTree
@@ -280,7 +269,7 @@ appendStepLog output mtime tree =
                     max (Array.length step.log.lines - 1) 0
 
                 setLineTimestamp line timestamps =
-                    Dict.update line (\mval -> mtime) timestamps
+                    Dict.update line (always mtime) timestamps
 
                 newTimestamps =
                     List.foldl
@@ -334,20 +323,19 @@ subscribeToEvents buildId =
     Subscription.map BuildEventsMsg (Concourse.BuildEvents.subscribe buildId)
 
 
-view : Concourse.Build -> OutputModel -> Html Msg
-view build { steps, errors, state } =
+view : OutputModel -> Html Msg
+view { steps, errors, state } =
     Html.div [ class "steps" ]
         [ viewErrors errors
-        , viewStepTree build steps state
+        , viewStepTree steps state
         ]
 
 
 viewStepTree :
-    Concourse.Build
-    -> Maybe StepTreeModel
+    Maybe StepTreeModel
     -> OutputState
     -> Html Msg
-viewStepTree build steps state =
+viewStepTree steps state =
     case ( state, steps ) of
         ( StepsLoading, _ ) ->
             LoadingIndicator.view
