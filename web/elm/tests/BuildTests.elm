@@ -340,6 +340,124 @@ all =
                                 "csrf_token"
                           )
                         ]
+        , test "when task starts, user artifacts are finished" <|
+            \_ ->
+                Layout.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = ""
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { href = ""
+                    , host = ""
+                    , hostname = ""
+                    , protocol = ""
+                    , origin = ""
+                    , port_ = ""
+                    , pathname = "/builds/1"
+                    , search = ""
+                    , hash = ""
+                    , username = ""
+                    , password = ""
+                    }
+                    |> Tuple.first
+                    |> Layout.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 1
+                                  , name = "1"
+                                  , job = Nothing
+                                  , status = Concourse.BuildStatusStarted
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Layout.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.PlanAndResourcesFetched 307 <|
+                            let
+                                artifactPlan =
+                                    { id = "artifact"
+                                    , step =
+                                        Concourse.BuildStepUserArtifact
+                                            "input"
+                                    }
+                            in
+                            Ok <|
+                                ( { id = "do"
+                                  , step =
+                                        Concourse.BuildStepDo <|
+                                            Array.fromList
+                                                [ { id = "agg"
+                                                  , step =
+                                                        Concourse.BuildStepAggregate <|
+                                                            Array.fromList
+                                                                [ artifactPlan ]
+                                                  }
+                                                , { id = "task"
+                                                  , step =
+                                                        Concourse.BuildStepTask
+                                                            "task"
+                                                  }
+                                                ]
+                                  }
+                                , { inputs = [], outputs = [] }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Layout.update
+                        (Msgs.SubMsg 1
+                            (SubPage.Msgs.BuildMsg
+                                (Build.Msgs.BuildEventsMsg Build.Msgs.Opened)
+                            )
+                        )
+                    |> Tuple.first
+                    |> Layout.update
+                        (Msgs.SubMsg 1
+                            (SubPage.Msgs.BuildMsg
+                                (Build.Msgs.BuildEventsMsg <|
+                                    Build.Msgs.Events <|
+                                        Ok <|
+                                            Array.fromList
+                                                [ Models.Initialize
+                                                    { source = ""
+                                                    , id = "task"
+                                                    }
+                                                , Models.Log
+                                                    { source = "stdout"
+                                                    , id = "artifact"
+                                                    }
+                                                    "log message"
+                                                    Nothing
+                                                , Models.StartTask
+                                                    { source = "stdout"
+                                                    , id = "task"
+                                                    }
+                                                ]
+                                )
+                            )
+                        )
+                    |> Tuple.first
+                    |> Layout.view
+                    |> Query.fromHtml
+                    |> Query.find [ class "header", containing [ text "input" ] ]
+                    |> Query.children []
+                    |> Query.index -1
+                    |> Query.has
+                        (iconSelector
+                            { size = "28px"
+                            , image = "ic-success-check.svg"
+                            }
+                            ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                        )
         , test "says loading on page load" <|
             \_ ->
                 pageLoad

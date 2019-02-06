@@ -93,6 +93,9 @@ init hl resources plan =
         Concourse.BuildStepTimeout plan ->
             initWrappedStep hl resources Timeout plan
 
+        Concourse.BuildStepUserArtifact name ->
+            initBottom hl Get plan.id name
+
 
 initMultiStep :
     Highlight

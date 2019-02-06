@@ -338,6 +338,7 @@ type BuildStep
     | BuildStepTry BuildPlan
     | BuildStepRetry (Array BuildPlan)
     | BuildStepTimeout BuildPlan
+    | BuildStepUserArtifact String
 
 
 type alias HookedPlan =
@@ -371,6 +372,8 @@ decodeBuildPlan_ =
             , Json.Decode.field "try" <| lazy (\_ -> decodeBuildStepTry)
             , Json.Decode.field "retry" <| lazy (\_ -> decodeBuildStepRetry)
             , Json.Decode.field "timeout" <| lazy (\_ -> decodeBuildStepTimeout)
+            , Json.Decode.field "user_artifact" <|
+                lazy (\_ -> decodeBuildStepUserArtifact)
             ]
 
 
@@ -453,6 +456,12 @@ decodeBuildStepTimeout : Json.Decode.Decoder BuildStep
 decodeBuildStepTimeout =
     Json.Decode.succeed BuildStepTimeout
         |: (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
+
+
+decodeBuildStepUserArtifact : Json.Decode.Decoder BuildStep
+decodeBuildStepUserArtifact =
+    Json.Decode.succeed BuildStepUserArtifact
+        |: Json.Decode.field "name" Json.Decode.string
 
 
 
