@@ -30,7 +30,6 @@ import Http
 import Json.Encode
 import Navigation
 import Process
-import RemoteData
 import Resource.Models exposing (VersionId, VersionToggleAction(..))
 import Routes
 import Scroll
@@ -93,7 +92,6 @@ type Effect
     | FetchBuildPrep Time Int Int
     | FetchBuildPlan Concourse.BuildId
     | FetchBuildPlanAndResources Concourse.BuildId
-    | FocusSearchInput
     | GetCurrentTime
     | DoTriggerBuild Concourse.JobIdentifier String
     | DoAbortBuild Int Concourse.CSRFToken
@@ -103,12 +101,13 @@ type Effect
     | RenderPipeline Json.Encode.Value Json.Encode.Value
     | RedirectToLogin
     | NavigateTo String
-    | SetTitle String
     | ModifyUrl String
+    | SetTitle String
     | DoPinVersion Concourse.VersionedResourceIdentifier Concourse.CSRFToken
     | DoUnpinVersion Concourse.ResourceIdentifier Concourse.CSRFToken
     | DoToggleVersion VersionToggleAction VersionId Concourse.CSRFToken
     | DoCheck Concourse.ResourceIdentifier Concourse.CSRFToken
+    | SetPinComment Concourse.ResourceIdentifier Concourse.CSRFToken String
     | SendTokenToFly String Int
     | SendTogglePipelineRequest { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken }
     | ShowTooltip ( String, String )
@@ -121,6 +120,7 @@ type Effect
     | SetFavIcon (Maybe Concourse.BuildStatus)
     | SaveToken String
     | LoadToken
+    | ForceFocus String
 
 
 type ScrollDirection
@@ -186,8 +186,11 @@ runEffect effect =
         RedirectToLogin ->
             requestLoginRedirect ""
 
-        NavigateTo newUrl ->
-            Navigation.newUrl newUrl
+        NavigateTo url ->
+            Navigation.newUrl url
+
+        ModifyUrl url ->
+            Navigation.modifyUrl url
 
         ResetPipelineFocus ->
             resetPipelineFocus ()
@@ -217,14 +220,12 @@ runEffect effect =
             Task.attempt Checked <|
                 Concourse.Resource.check rid csrfToken
 
+        SetPinComment rid csrfToken comment ->
+            Task.attempt CommentSet <|
+                Concourse.Resource.setPinComment rid csrfToken comment
+
         SendTokenToFly authToken flyPort ->
             sendTokenToFly authToken flyPort
-
-        FocusSearchInput ->
-            Task.attempt (always EmptyCallback) (Dom.focus "search-input-field")
-
-        ModifyUrl url ->
-            Navigation.modifyUrl url
 
         SendTogglePipelineRequest { pipeline, csrfToken } ->
             togglePipelinePaused { pipeline = pipeline, csrfToken = csrfToken }
@@ -285,6 +286,10 @@ runEffect effect =
 
         LoadToken ->
             loadToken ()
+
+        ForceFocus dom ->
+            Dom.focus dom
+                |> Task.attempt (always EmptyCallback)
 
 
 fetchJobBuilds : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Callback
@@ -397,8 +402,7 @@ fetchData : Cmd Callback
 fetchData =
     Dashboard.APIData.remoteData
         |> Task.map2 (,) Time.now
-        |> RemoteData.asCmd
-        |> Cmd.map APIDataFetched
+        |> Task.attempt APIDataFetched
 
 
 togglePipelinePaused : { pipeline : Dashboard.Models.Pipeline, csrfToken : Concourse.CSRFToken } -> Cmd Callback

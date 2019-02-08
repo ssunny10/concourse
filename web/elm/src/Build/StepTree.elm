@@ -15,8 +15,8 @@ import Ansi.Log
 import Array exposing (Array)
 import Build.Models
     exposing
-        ( Highlight(..)
-        , HookedStep
+        ( HookedStep
+        , Hoverable(..)
         , MetadataField
         , Step
         , StepFocus
@@ -28,7 +28,7 @@ import Build.Models
         , TabFocus(..)
         , Version
         )
-import Build.Msgs exposing (Hoverable(..), Msg(..), StepID)
+import Build.Msgs exposing (Msg(..))
 import Build.Styles as Styles
 import Concourse
 import Date exposing (Date)
@@ -39,8 +39,8 @@ import DictView
 import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
-import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Routes exposing (showHighlight)
+import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
+import Routes exposing (Highlight(..), StepID, showHighlight)
 import Spinner
 import StrictEvents
 
@@ -718,12 +718,12 @@ viewVersion : Maybe Version -> Html Msg
 viewVersion version =
     Maybe.withDefault Dict.empty version
         |> Dict.map (always Html.text)
-        |> DictView.view
+        |> DictView.view []
 
 
 viewMetadata : List MetadataField -> Html Msg
 viewMetadata metadata =
-    DictView.view
+    DictView.view []
         << Dict.fromList
     <|
         List.map (\{ name, value } -> ( name, Html.pre [] [ Html.text value ] )) metadata

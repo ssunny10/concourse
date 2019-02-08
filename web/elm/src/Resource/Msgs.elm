@@ -1,7 +1,9 @@
 module Resource.Msgs exposing (Msg(..))
 
 import Concourse.Pagination exposing (Page, Paginated)
+import Keyboard
 import Resource.Models as Models
+import Routes
 import Time exposing (Time)
 import TopBar.Msgs
 
@@ -11,7 +13,7 @@ type Msg
     | LoadPage Page
     | ClockTick Time.Time
     | ExpandVersionedResource Models.VersionId
-    | NavTo String
+    | NavTo Routes.Route
     | TogglePinBarTooltip
     | ToggleVersionTooltip
     | PinVersion Models.VersionId
@@ -21,3 +23,9 @@ type Msg
     | Hover Models.Hoverable
     | Check
     | TopBarMsg TopBar.Msgs.Msg
+    | EditComment String
+    | SaveComment String
+    | FocusTextArea
+    | BlurTextArea
+    | KeyDowns Keyboard.KeyCode
+    | KeyUps Keyboard.KeyCode

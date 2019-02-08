@@ -1,8 +1,10 @@
-module Build.Msgs exposing (Hoverable(..), Msg(..), StepID)
+module Build.Msgs exposing (EventsMsg(..), Msg(..))
 
+import Array
+import Build.Models exposing (BuildEvent, Hoverable)
 import Concourse
-import Concourse.BuildEvents
 import Keyboard
+import Routes
 import Scroll
 import StrictEvents
 import Time
@@ -17,11 +19,11 @@ type Msg
     | ClockTick Time.Time
     | RevealCurrentBuildInHistory
     | WindowScrolled Scroll.FromBottom
-    | NavTo String
+    | NavTo Routes.Route
     | NewCSRFToken String
     | KeyPressed Keyboard.KeyCode
     | KeyUped Keyboard.KeyCode
-    | BuildEventsMsg Concourse.BuildEvents.Msg
+    | BuildEventsMsg EventsMsg
     | ToggleStep String
     | SwitchTab String Int
     | SetHighlight String Int
@@ -29,11 +31,7 @@ type Msg
     | ScrollDown
 
 
-type alias StepID =
-    String
-
-
-type Hoverable
-    = Abort
-    | Trigger
-    | FirstOccurrence StepID
+type EventsMsg
+    = Opened
+    | Errored
+    | Events (Result String (Array.Array BuildEvent))
