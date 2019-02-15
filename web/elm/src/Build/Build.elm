@@ -9,7 +9,7 @@ module Build.Build exposing
     , view
     )
 
-import Build.Models as Models
+import Build.Models
     exposing
         ( BuildPageType(..)
         , Hoverable(..)
@@ -54,20 +54,13 @@ import Spinner
 import StrictEvents exposing (onLeftClick, onMouseWheel)
 import String
 import Subscription exposing (Subscription(..))
-import Time exposing (Time)
+import Time
 import TopBar.Model
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 import Views
-
-
-type StepRenderingState
-    = StepsLoading
-    | StepsLiveUpdating
-    | StepsComplete
-    | NotAuthorized
 
 
 type alias Flags =

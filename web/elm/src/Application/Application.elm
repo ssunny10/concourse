@@ -120,7 +120,7 @@ handleCallback disp callback model =
     case disp of
         SubPage navIndex ->
             case callback of
-                ResourcesFetched (Ok fetchedResources) ->
+                ResourcesFetched (Ok _) ->
                     if validNavIndex model.navIndex navIndex then
                         subpageHandleCallback model callback navIndex
 
@@ -148,13 +148,13 @@ handleCallback disp callback model =
                 LoggedOut (Ok ()) ->
                     subpageHandleCallback { model | userState = UserStateLoggedOut } callback navIndex
 
-                APIDataFetched (Ok ( time, data )) ->
+                APIDataFetched (Ok ( _, data )) ->
                     subpageHandleCallback
                         { model | userState = data.user |> Maybe.map UserStateLoggedIn |> Maybe.withDefault UserStateLoggedOut }
                         callback
                         navIndex
 
-                APIDataFetched (Err err) ->
+                APIDataFetched (Err _) ->
                     subpageHandleCallback { model | userState = UserStateLoggedOut } callback navIndex
 
                 -- otherwise, pass down

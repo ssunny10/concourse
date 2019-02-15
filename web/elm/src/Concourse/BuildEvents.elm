@@ -10,11 +10,11 @@ module Concourse.BuildEvents exposing
     , parseEventsFromIndex
     )
 
-import Array exposing (Array)
+import Array
 import Build.Models exposing (BuildEvent(..), Origin)
 import Concourse
 import Date exposing (Date)
-import Dict exposing (Dict)
+import Dict
 import EventSource.LowLevel as ES
 import Json.Decode
 
@@ -98,8 +98,8 @@ parseEventsFromIndex evs acc i =
 
         Just ev ->
             case parseEvent ev of
-                Ok ev ->
-                    parseEventsFromIndex evs (Array.set i ev acc) (i + 1)
+                Ok event ->
+                    parseEventsFromIndex evs (Array.set i event acc) (i + 1)
 
                 Err err ->
                     Err err
@@ -108,7 +108,7 @@ parseEventsFromIndex evs acc i =
 parseEvent : ES.Event -> Result String BuildEvent
 parseEvent event =
     case ( event.name, event.data ) of
-        ( Just "end", data ) ->
+        ( Just "end", _ ) ->
             Ok End
 
         ( Just "event", data ) ->

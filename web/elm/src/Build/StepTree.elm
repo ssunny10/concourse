@@ -39,7 +39,7 @@ import DictView
 import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
-import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
+import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import Spinner
 import StrictEvents
@@ -687,7 +687,7 @@ viewTimestampedLine timestamps hl id lineNo line =
             , ( "highlighted-line", highlighted )
             ]
         ]
-        [ viewTimestamp hl id ( lineNo, ts )
+        [ viewTimestamp id ( lineNo, ts )
         , viewLine line
         ]
 
@@ -699,15 +699,15 @@ viewLine line =
         ]
 
 
-viewTimestamp : Highlight -> String -> ( Int, Maybe Date ) -> Html Msg
-viewTimestamp hl id ( line, date ) =
+viewTimestamp : String -> ( Int, Maybe Date ) -> Html Msg
+viewTimestamp id ( line, date ) =
     Html.a
         [ href (showHighlight (HighlightLine id line))
         , StrictEvents.onLeftClickOrShiftLeftClick (SetHighlight id line) (ExtendHighlight id line)
         ]
         [ case date of
-            Just date ->
-                Html.td [ class "timestamp", attribute "data-timestamp" (Date.Format.format "%H:%M:%S" date) ] []
+            Just d ->
+                Html.td [ class "timestamp", attribute "data-timestamp" (Date.Format.format "%H:%M:%S" d) ] []
 
             _ ->
                 Html.td [ class "timestamp placeholder" ] []
@@ -784,7 +784,7 @@ viewStepHeaderIcon headerType tooltip id =
                 []
     in
     Html.div
-        ([ style <| Styles.stepHeaderIcon headerType ] ++ eventHandlers)
+        (style (Styles.stepHeaderIcon headerType) :: eventHandlers)
         (if tooltip then
             [ Html.div
                 [ style Styles.firstOccurrenceTooltip ]

@@ -4,7 +4,7 @@ import Array
 import Build.Models exposing (BuildEvent, Hoverable)
 import Concourse
 import Keyboard
-import Routes exposing (StepID)
+import Routes
 import Scroll
 import StrictEvents
 import Time

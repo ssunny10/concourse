@@ -54,8 +54,8 @@ isRunning status =
         PipelineStatusFailed details ->
             details == Running
 
-        PipelineStatusPending isRunning ->
-            isRunning
+        PipelineStatusPending running ->
+            running
 
         PipelineStatusSucceeded details ->
             details == Running
