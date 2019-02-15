@@ -20,11 +20,10 @@ import Concourse.Pagination
     exposing
         ( Page
         , Paginated
-        , Pagination
         , chevron
         , chevronContainer
         )
-import Dict exposing (Dict)
+import Dict
 import DictView
 import Effects exposing (Effect(..))
 import Html exposing (Html)
@@ -32,7 +31,6 @@ import Html.Attributes
     exposing
         ( attribute
         , class
-        , disabled
         , href
         , id
         , style
@@ -207,7 +205,7 @@ handleCallbackWithoutTopBar callback model =
                 _ ->
                     ( model, [] )
 
-        BuildResourcesFetched (Ok ( id, buildResources )) ->
+        BuildResourcesFetched (Ok ( buildId, buildResources )) ->
             case model.buildsWithResources.content of
                 [] ->
                     ( model, [] )
@@ -215,7 +213,7 @@ handleCallbackWithoutTopBar callback model =
                 anyList ->
                     let
                         transformer bwr =
-                            if bwr.build.id == id then
+                            if bwr.build.id == buildId then
                                 { bwr | resources = Just buildResources }
 
                             else
@@ -232,9 +230,6 @@ handleCallbackWithoutTopBar callback model =
                       }
                     , []
                     )
-
-        BuildResourcesFetched (Err err) ->
-            ( model, [] )
 
         PausedToggled (Ok ()) ->
             ( { model | pausedChanging = False }, [] )
@@ -273,7 +268,7 @@ update action model =
         NavTo route ->
             ( model, [ NavigateTo <| Routes.toString route ] )
 
-        SubscriptionTick time ->
+        SubscriptionTick _ ->
             ( model
             , [ FetchJobBuilds model.jobIdentifier model.currentPage
               , FetchJob model.jobIdentifier
@@ -369,12 +364,11 @@ setExistingResources paginatedBuilds model =
 
 updateResourcesIfNeeded : BuildWithResources -> Maybe Effect
 updateResourcesIfNeeded bwr =
-    case ( bwr.resources, isRunning bwr.build ) of
-        ( Just resources, False ) ->
-            Nothing
+    if isRunning bwr.build && bwr.resources == Nothing then
+        Just <| FetchBuildResources bwr.build.id
 
-        _ ->
-            Just <| FetchBuildResources bwr.build.id
+    else
+        Nothing
 
 
 handleJobBuildsFetched : Paginated Concourse.Build -> Model -> ( Model, List Effect )
@@ -644,17 +638,17 @@ viewBuildWithResources model bwr =
     Html.li [ class "js-build" ] <|
         let
             buildResourcesView =
-                viewBuildResources model bwr
+                viewBuildResources bwr
         in
-        [ viewBuildHeader model bwr.build
+        [ viewBuildHeader bwr.build
         , Html.div [ class "pam clearfix" ] <|
             BuildDuration.view bwr.build.duration model.now
                 :: buildResourcesView
         ]
 
 
-viewBuildHeader : Model -> Concourse.Build -> Html Msg
-viewBuildHeader model b =
+viewBuildHeader : Concourse.Build -> Html Msg
+viewBuildHeader b =
     Html.a
         [ class <| Concourse.BuildStatus.show b.status
         , StrictEvents.onLeftClick <| NavTo <| Routes.buildRoute b
@@ -664,8 +658,8 @@ viewBuildHeader model b =
         ]
 
 
-viewBuildResources : Model -> BuildWithResources -> List (Html Msg)
-viewBuildResources model buildWithResources =
+viewBuildResources : BuildWithResources -> List (Html Msg)
+viewBuildResources buildWithResources =
     let
         inputsTable =
             case buildWithResources.resources of
@@ -674,7 +668,7 @@ viewBuildResources model buildWithResources =
 
                 Just resources ->
                     Html.table [ class "build-resources" ] <|
-                        List.map (viewBuildInputs model) resources.inputs
+                        List.map viewBuildInputs resources.inputs
 
         outputsTable =
             case buildWithResources.resources of
@@ -683,7 +677,7 @@ viewBuildResources model buildWithResources =
 
                 Just resources ->
                     Html.table [ class "build-resources" ] <|
-                        List.map (viewBuildOutputs model) resources.outputs
+                        List.map viewBuildOutputs resources.outputs
     in
     [ Html.div [ class "inputs mrl" ]
         [ Html.div
@@ -726,8 +720,8 @@ buildResourceIcon direction =
     ]
 
 
-viewBuildInputs : Model -> Concourse.BuildResourcesInput -> Html Msg
-viewBuildInputs model bi =
+viewBuildInputs : Concourse.BuildResourcesInput -> Html Msg
+viewBuildInputs bi =
     Html.tr [ class "mbs pas resource fl clearfix" ]
         [ Html.td [ class "resource-name mrm" ]
             [ Html.text bi.name
@@ -738,8 +732,8 @@ viewBuildInputs model bi =
         ]
 
 
-viewBuildOutputs : Model -> Concourse.BuildResourcesOutput -> Html Msg
-viewBuildOutputs model bo =
+viewBuildOutputs : Concourse.BuildResourcesOutput -> Html Msg
+viewBuildOutputs bo =
     Html.tr [ class "mbs pas resource fl clearfix" ]
         [ Html.td [ class "resource-name mrm" ]
             [ Html.text bo.name
@@ -759,7 +753,8 @@ viewVersion version =
 
 
 subscriptions : Model -> List (Subscription Msg)
-subscriptions model =
-    [ OnClockTick (5 * Time.second) SubscriptionTick
-    , OnClockTick (1 * Time.second) ClockTick
-    ]
+subscriptions =
+    always
+        [ OnClockTick (5 * Time.second) SubscriptionTick
+        , OnClockTick (1 * Time.second) ClockTick
+        ]

@@ -20,18 +20,16 @@ import Concourse.Pagination
     exposing
         ( Page
         , Paginated
-        , Pagination
         , chevron
         , chevronContainer
-        , equal
         )
 import Css
 import Date exposing (Date)
 import Date.Format
 import Dict
 import DictView
-import Duration exposing (Duration)
-import Effects exposing (Effect(..), runEffect, setTitle)
+import Duration
+import Effects exposing (Effect(..))
 import Html as UnstyledHtml
 import Html.Attributes
 import Html.Styled as Html exposing (Html)
@@ -242,7 +240,7 @@ handleCallbackWithoutTopBar action model =
             )
 
         ResourceFetched (Err err) ->
-            case Debug.log "failed to fetch resource" err of
+            case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
                         ( model, [ RedirectToLogin ] )
@@ -342,10 +340,6 @@ handleCallbackWithoutTopBar action model =
                     , []
                     )
 
-        VersionedResourcesFetched (Err err) ->
-            flip always (Debug.log "failed to fetch versioned resources" err) <|
-                ( model, [] )
-
         InputToFetched (Ok ( versionID, builds )) ->
             ( updateVersion versionID (\v -> { v | inputTo = builds }) model
             , []
@@ -390,11 +384,11 @@ handleCallbackWithoutTopBar action model =
             , []
             )
 
-        VersionToggled action versionID result ->
+        VersionToggled toggleDirection versionID result ->
             let
                 newEnabledState : Models.VersionEnabledState
                 newEnabledState =
-                    case ( result, action ) of
+                    case ( result, toggleDirection ) of
                         ( Ok (), Models.Enable ) ->
                             Models.Enabled
 
@@ -459,7 +453,7 @@ handleCallbackWithoutTopBar action model =
 update : Msg -> Model -> ( Model, List Effect )
 update action model =
     case action of
-        AutoupdateTimerTicked timestamp ->
+        AutoupdateTimerTicked _ ->
             ( model
             , [ FetchResource model.resourceIdentifier
               , FetchVersionedResources model.resourceIdentifier model.currentPage
@@ -538,9 +532,9 @@ update action model =
 
                 newModel =
                     case ( model.pinnedVersion, pinnedVersionID ) of
-                        ( PinnedStaticallyTo _, Just id ) ->
+                        ( PinnedStaticallyTo _, Just versionID ) ->
                             updateVersion
-                                id
+                                versionID
                                 (\v -> { v | showTooltip = not v.showTooltip })
                                 model
 
@@ -559,7 +553,7 @@ update action model =
                 effects : List Effect
                 effects =
                     case version of
-                        Just v ->
+                        Just _ ->
                             [ DoPinVersion
                                 versionID
                                 model.csrfToken
@@ -591,13 +585,13 @@ update action model =
             , [ cmd ]
             )
 
-        ToggleVersion action versionID ->
+        ToggleVersion toggleDirection versionID ->
             ( updateVersion versionID
                 (\v ->
                     { v | enabled = Models.Changing }
                 )
                 model
-            , [ DoToggleVersion action
+            , [ DoToggleVersion toggleDirection
                     versionID
                     model.csrfToken
               ]
@@ -1039,7 +1033,7 @@ checkButton :
         , checkStatus : Models.CheckStatus
     }
     -> Html Msg
-checkButton ({ hovered, userState, teamName, checkStatus } as params) =
+checkButton ({ hovered, userState, checkStatus } as params) =
     let
         isHovered =
             hovered == Models.CheckButton
@@ -1263,12 +1257,12 @@ pinBar { pinnedVersion, showPinBarTooltip, pinIconHover } =
     Html.div
         (attrList
             [ ( id "pin-bar", True )
-            , ( style <| Resource.Styles.pinBar { isPinned = ME.isJust pinBarVersion }, True )
+            , ( style <| Resource.Styles.pinBar (ME.isJust pinBarVersion), True )
             , ( onMouseEnter TogglePinBarTooltip, isPinnedStatically )
             , ( onMouseLeave TogglePinBarTooltip, isPinnedStatically )
             ]
         )
-        ([ Html.div
+        (Html.div
             (attrList
                 [ ( id "pin-icon", True )
                 , ( style <|
@@ -1285,8 +1279,7 @@ pinBar { pinnedVersion, showPinBarTooltip, pinIconHover } =
                 ]
             )
             []
-         ]
-            ++ (case pinBarVersion of
+            :: (case pinBarVersion of
                     Just v ->
                         [ viewVersion [] v ]
 
@@ -1335,7 +1328,7 @@ viewVersionedResource { version, pinnedVersion } =
         pinState =
             case Pinned.pinState version.version version.id pinnedVersion of
                 PinnedStatically _ ->
-                    PinnedStatically { showTooltip = version.showTooltip }
+                    PinnedStatically version.showTooltip
 
                 x ->
                     x
@@ -1351,7 +1344,7 @@ viewVersionedResource { version, pinnedVersion } =
             _ ->
                 []
         )
-        ([ Html.div
+        (Html.div
             [ css
                 [ Css.displayFlex
                 , Css.margin2 (Css.px 5) Css.zero
@@ -1359,7 +1352,7 @@ viewVersionedResource { version, pinnedVersion } =
             ]
             [ viewEnabledCheckbox
                 { enabled = version.enabled
-                , id = version.id
+                , versionID = version.id
                 , pinState = pinState
                 }
             , viewPinButton
@@ -1368,13 +1361,12 @@ viewVersionedResource { version, pinnedVersion } =
                 , showTooltip = version.showTooltip
                 }
             , viewVersionHeader
-                { id = version.id
+                { versionID = version.id
                 , version = version.version
                 , pinnedState = pinState
                 }
             ]
-         ]
-            ++ (if version.expanded then
+            :: (if version.expanded then
                     [ viewVersionBody
                         { inputTo = version.inputTo
                         , outputOf = version.outputOf
@@ -1422,22 +1414,22 @@ viewVersionBody { inputTo, outputOf, metadata } =
 viewEnabledCheckbox :
     { a
         | enabled : Models.VersionEnabledState
-        , id : Models.VersionId
+        , versionID : Models.VersionId
         , pinState : VersionPinState
     }
     -> Html Msg
-viewEnabledCheckbox ({ enabled, id, pinState } as params) =
+viewEnabledCheckbox ({ enabled, versionID } as params) =
     let
         clickHandler =
             case enabled of
                 Models.Enabled ->
-                    [ onClick <| ToggleVersion Models.Disable id ]
+                    [ onClick <| ToggleVersion Models.Disable versionID ]
 
                 Models.Changing ->
                     []
 
                 Models.Disabled ->
-                    [ onClick <| ToggleVersion Models.Enable id ]
+                    [ onClick <| ToggleVersion Models.Enable versionID ]
     in
     Html.div
         ([ Html.Styled.Attributes.attribute
@@ -1499,23 +1491,22 @@ viewPinButton { versionID, pinState } =
             ++ eventHandlers
         )
         (case pinState of
-            PinnedStatically { showTooltip } ->
-                if showTooltip then
-                    [ Html.div
-                        [ style
-                            [ ( "position", "absolute" )
-                            , ( "bottom", "25px" )
-                            , ( "background-color", Colors.tooltipBackground )
-                            , ( "z-index", "2" )
-                            , ( "padding", "5px" )
-                            , ( "width", "170px" )
-                            ]
+            PinnedStatically True ->
+                [ Html.div
+                    [ style
+                        [ ( "position", "absolute" )
+                        , ( "bottom", "25px" )
+                        , ( "background-color", Colors.tooltipBackground )
+                        , ( "z-index", "2" )
+                        , ( "padding", "5px" )
+                        , ( "width", "170px" )
                         ]
-                        [ Html.text "enable via pipeline config" ]
                     ]
+                    [ Html.text "enable via pipeline config" ]
+                ]
 
-                else
-                    []
+            PinnedStatically False ->
+                []
 
             InTransition ->
                 [ Html.fromUnstyled <|
@@ -1531,14 +1522,14 @@ viewPinButton { versionID, pinState } =
 
 viewVersionHeader :
     { a
-        | id : Models.VersionId
+        | versionID : Models.VersionId
         , version : Concourse.Version
         , pinnedState : VersionPinState
     }
     -> Html Msg
-viewVersionHeader { id, version, pinnedState } =
+viewVersionHeader { versionID, version, pinnedState } =
     Html.div
-        [ onClick <| ExpandVersionedResource id
+        [ onClick <| ExpandVersionedResource versionID
         , style <| Resource.Styles.versionHeader pinnedState
         ]
         [ viewVersion [] version ]
@@ -1671,9 +1662,10 @@ fetchDataForExpandedVersions model =
 
 
 subscriptions : Model -> List (Subscription Msg)
-subscriptions model =
-    [ OnClockTick (5 * Time.second) AutoupdateTimerTicked
-    , OnClockTick Time.second ClockTick
-    , OnKeyDown
-    , OnKeyUp
-    ]
+subscriptions =
+    always
+        [ OnClockTick (5 * Time.second) AutoupdateTimerTicked
+        , OnClockTick Time.second ClockTick
+        , OnKeyDown
+        , OnKeyUp
+        ]

@@ -16,7 +16,7 @@ import Concourse.BuildResources
 import Concourse.BuildStatus
 import Concourse.Info
 import Concourse.Job
-import Concourse.Pagination exposing (Page, Paginated)
+import Concourse.Pagination exposing (Page)
 import Concourse.Pipeline
 import Concourse.PipelineStatus
 import Concourse.Resource
@@ -473,8 +473,8 @@ setFavicon status =
     let
         iconName =
             case status of
-                Just status ->
-                    "/public/images/favicon-" ++ Concourse.BuildStatus.show status ++ ".png"
+                Just s ->
+                    "/public/images/favicon-" ++ Concourse.BuildStatus.show s ++ ".png"
 
                 Nothing ->
                     "/public/images/favicon.png"

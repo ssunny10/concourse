@@ -17,18 +17,18 @@ import Concourse
 import Concourse.Cli as Cli
 import Effects exposing (Effect(..))
 import Html exposing (Html)
-import Html.Attributes exposing (class, height, href, id, src, style, width)
+import Html.Attributes exposing (class, href, id, src)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Styled as HS
 import Http
 import Json.Decode
 import Json.Encode
 import Pipeline.Msgs exposing (Msg(..))
-import RemoteData exposing (..)
+import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Subscription exposing (Subscription(..))
-import Svg exposing (..)
+import Svg
 import Svg.Attributes as SvgAttributes
 import Time exposing (Time)
 import TopBar.Model
@@ -98,13 +98,6 @@ changeToPipelineAndGroups flags model =
 
     else
         init flags
-
-
-loadPipeline : Concourse.PipelineIdentifier -> Model -> ( Model, List Effect )
-loadPipeline pipelineLocator model =
-    ( { model | pipelineLocator = pipelineLocator }
-    , [ FetchPipeline pipelineLocator, FetchVersion, ResetPipelineFocus ]
-    )
 
 
 timeUntilHidden : Time
@@ -197,9 +190,8 @@ handleCallbackWithoutTopBar callback model =
         VersionFetched (Ok version) ->
             ( { model | concourseVersion = version, experiencingTurbulence = False }, [] )
 
-        VersionFetched (Err err) ->
-            flip always (Debug.log "failed to fetch version" err) <|
-                ( { model | experiencingTurbulence = True }, [] )
+        VersionFetched (Err _) ->
+            ( { model | experiencingTurbulence = True }, [] )
 
         _ ->
             ( model, [] )
@@ -227,7 +219,7 @@ update msg model =
             else
                 ( model, [] )
 
-        AutoupdateTimerTicked timestamp ->
+        AutoupdateTimerTicked _ ->
             ( model, [ FetchPipeline model.pipelineLocator ] )
 
         PipelineIdentifierFetched pipelineIdentifier ->
@@ -242,10 +234,10 @@ update msg model =
         SetGroups groups ->
             ( model, [ NavigateTo <| getNextUrl groups model ] )
 
-        FromTopBar msg ->
+        FromTopBar topMsg ->
             let
                 ( newTopBar, topBarEffects ) =
-                    TopBar.update msg model.topBar
+                    TopBar.update topMsg model.topBar
             in
             ( { model | topBar = newTopBar }, topBarEffects )
 
@@ -263,15 +255,16 @@ getPinnedResources model =
 
 
 subscriptions : Model -> List (Subscription Msg)
-subscriptions model =
-    [ OnClockTick (1 * Time.minute) AutoupdateVersionTicked
-    , OnClockTick (5 * Time.second) AutoupdateTimerTicked
-    , OnClockTick timeUntilHiddenCheckInterval HideLegendTimerTicked
-    , OnMouseMove ShowLegend
-    , OnMouseClick ShowLegend
-    , OnKeyPress (\_ -> ShowLegend)
-    , OnKeyPress KeyPressed
-    ]
+subscriptions =
+    always
+        [ OnClockTick (1 * Time.minute) AutoupdateVersionTicked
+        , OnClockTick (5 * Time.second) AutoupdateTimerTicked
+        , OnClockTick timeUntilHiddenCheckInterval HideLegendTimerTicked
+        , OnMouseMove ShowLegend
+        , OnMouseClick ShowLegend
+        , OnKeyPress (\_ -> ShowLegend)
+        , OnKeyPress KeyPressed
+        ]
 
 
 view : UserState -> Model -> Html Msg
@@ -453,9 +446,8 @@ jobAppearsInGroups groupNames pi jobJson =
         Ok cj ->
             anyIntersect cj.groups groupNames
 
-        Err err ->
-            flip always (Debug.log "failed to check if job is in group" err) <|
-                False
+        Err _ ->
+            Debug.log "failed to check if job is in group" False
 
 
 expandJsonList : Json.Encode.Value -> List Json.Decode.Value
@@ -468,7 +460,7 @@ expandJsonList flatList =
         Ok res ->
             res
 
-        Err err ->
+        Err _ ->
             []
 
 
@@ -568,8 +560,8 @@ selectedGroupsOrDefault model =
 getDefaultSelectedGroups : WebData Concourse.Pipeline -> List String
 getDefaultSelectedGroups pipeline =
     case pipeline of
-        RemoteData.Success pipeline ->
-            case List.head pipeline.groups of
+        RemoteData.Success p ->
+            case List.head p.groups of
                 Nothing ->
                     []
 

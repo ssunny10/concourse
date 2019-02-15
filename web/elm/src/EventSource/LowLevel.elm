@@ -53,7 +53,7 @@ type alias Event =
 -}
 type alias Settings =
     { events : List String
-    , onEvent : Array.Array Event -> Task Never ()
+    , onEvent : Array Event -> Task Never ()
     , onOpen : EventSource -> Task Never ()
     , onError : () -> Task Never ()
     }

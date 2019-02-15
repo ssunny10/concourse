@@ -22,8 +22,8 @@ import Pinned
 import Resource.Models as Models
 
 
-pinBar : { isPinned : Bool } -> List ( String, String )
-pinBar { isPinned } =
+pinBar : Bool -> List ( String, String )
+pinBar isPinned =
     let
         borderColor =
             if isPinned then

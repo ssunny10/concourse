@@ -12,16 +12,13 @@ import FlySuccess.Models
     exposing
         ( ButtonState(..)
         , TokenTransfer
-        , TransferResult
         , hover
-        , isClicked
-        , isPending
         )
 import FlySuccess.Msgs exposing (Msg(..))
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, id, style)
+import Html.Attributes exposing (attribute, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Html.Styled as HS
 import Routes exposing (FlyPort)
@@ -92,10 +89,10 @@ update msg model =
         CopyToken ->
             ( { model | buttonState = Clicked }, [] )
 
-        FromTopBar msg ->
+        FromTopBar topMsg ->
             let
                 ( newTopBar, topBarEffects ) =
-                    TopBar.update msg model.topBar
+                    TopBar.update topMsg model.topBar
             in
             ( { model | topBar = newTopBar }, topBarEffects )
 
@@ -174,7 +171,7 @@ paragraph { identifier, lines } =
 
 
 button : Model -> Html Msg
-button { tokenTransfer, authToken, buttonState } =
+button { authToken, buttonState } =
     Html.span
         [ id "copy-token"
         , style <| Styles.button buttonState

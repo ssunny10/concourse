@@ -23,13 +23,13 @@ type alias SubscriberKey =
 
 
 type SelfMsg
-    = ESEvents SubscriberKey (Array.Array ES.Event)
+    = ESEvents SubscriberKey (Array ES.Event)
     | ESOpened SubscriberKey ES.EventSource
     | ESErrored SubscriberKey
 
 
 type Msg
-    = Events (Array.Array ES.Event)
+    = Events (Array ES.Event)
     | Opened
     | Errored
 
@@ -78,8 +78,8 @@ onEffects router subs state =
         addSub key tagger msubs =
             Just (MySub key tagger :: Maybe.withDefault [] msubs)
 
-        insertSub (MySub key tagger) state =
-            Dict.update key (addSub key tagger) state
+        insertSub (MySub key tagger) s =
+            Dict.update key (addSub key tagger) s
 
         desiredSubs =
             List.foldl insertSub Dict.empty subs

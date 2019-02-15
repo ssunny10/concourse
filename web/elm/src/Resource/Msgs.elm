@@ -1,6 +1,6 @@
 module Resource.Msgs exposing (Msg(..))
 
-import Concourse.Pagination exposing (Page, Paginated)
+import Concourse.Pagination exposing (Page)
 import Keyboard
 import Resource.Models as Models
 import Routes

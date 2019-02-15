@@ -1,7 +1,7 @@
 module NotAuthorized exposing (view)
 
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, src)
+import Html.Attributes exposing (class, src)
 
 
 view : Html msg

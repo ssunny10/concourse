@@ -7,12 +7,7 @@ module FlySuccess.Text exposing
     , title
     )
 
-import FlySuccess.Models as Models
-    exposing
-        ( ButtonState
-        , TokenTransfer
-        , TransferResult
-        )
+import FlySuccess.Models as Models exposing (ButtonState, TransferResult)
 
 
 title : String
