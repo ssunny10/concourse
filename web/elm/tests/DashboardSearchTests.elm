@@ -4,11 +4,11 @@ import Application.Application as Application
 import Application.Msgs as Msgs
 import Dashboard.Msgs
 import Expect exposing (Expectation)
-import TopBar.Msgs
 import SubPage.Msgs
 import Test exposing (Test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (id, text)
+import TopBar.Msgs
 
 
 describe : String -> model -> List (model -> Test) -> Test
