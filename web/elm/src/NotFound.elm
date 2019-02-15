@@ -33,7 +33,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            TopBar.init { route = flags.route }
+            TopBar.init flags.route
     in
     ( { notFoundImgSrc = flags.notFoundImgSrc
       , topBar = topBar

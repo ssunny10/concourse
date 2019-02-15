@@ -66,7 +66,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            TopBar.init { route = Routes.Pipeline { id = flags.pipelineLocator, groups = flags.selectedGroups } }
+            TopBar.init (Routes.Pipeline { id = flags.pipelineLocator, groups = flags.selectedGroups })
 
         model =
             { concourseVersion = ""
@@ -281,7 +281,7 @@ view userState model =
             TopBar.Model.HasPipeline
                 { pinnedResources = getPinnedResources model
                 , pipeline = model.pipelineLocator
-                , isPaused = isPaused model.pipeline
+                , paused = isPaused model.pipeline
                 }
     in
     Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]

@@ -24,7 +24,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Html.Styled as HS
-import Routes
+import Routes exposing (FlyPort)
 import TopBar.Model
 import TopBar.Styles
 import TopBar.TopBar as TopBar
@@ -39,11 +39,11 @@ type alias Model =
     }
 
 
-init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )
+init : { authToken : String, flyPort : FlyPort } -> ( Model, List Effect )
 init { authToken, flyPort } =
     let
         ( topBar, topBarEffects ) =
-            TopBar.init { route = Routes.FlySuccess { flyPort = flyPort } }
+            TopBar.init (Routes.FlySuccess flyPort)
     in
     ( { buttonState = Unhovered
       , authToken = authToken

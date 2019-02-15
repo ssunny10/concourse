@@ -89,7 +89,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            TopBar.init { route = Routes.Resource { id = flags.resourceId, page = Nothing } }
+            TopBar.init (Routes.Resource { id = flags.resourceId, page = Nothing })
 
         model =
             { resourceIdentifier = flags.resourceId

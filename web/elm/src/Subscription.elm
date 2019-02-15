@@ -75,11 +75,11 @@ runSubscription s =
         Conditionally True m ->
             runSubscription m
 
-        Conditionally False m ->
+        Conditionally False _ ->
             Sub.none
 
-        WhenPresent (Just s) ->
-            runSubscription s
+        WhenPresent (Just s2) ->
+            runSubscription s2
 
         WhenPresent Nothing ->
             Sub.none
@@ -127,8 +127,8 @@ map f s =
         Conditionally b m ->
             Conditionally b (map f m)
 
-        WhenPresent (Just s) ->
-            WhenPresent (Just (map f s))
+        WhenPresent (Just s2) ->
+            WhenPresent (Just (map f s2))
 
         WhenPresent Nothing ->
             WhenPresent Nothing

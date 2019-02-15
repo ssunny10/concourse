@@ -1,8 +1,7 @@
 module TopBar.TopBar exposing
-    ( Flags
-    , handleCallback
+    ( handleCallback
     , init
-    , query
+    , queryString
     , queryStringFromSearch
     , update
     , view
@@ -17,21 +16,26 @@ import Effects exposing (Effect(..))
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as HA
     exposing
-        ( attribute
-        , class
-        , css
+        ( class
         , href
         , id
         , placeholder
-        , src
         , style
-        , type_
         , value
         )
-import Html.Styled.Events exposing (..)
+import Html.Styled.Events
+    exposing
+        ( onBlur
+        , onClick
+        , onFocus
+        , onInput
+        , onMouseDown
+        , onMouseEnter
+        , onMouseLeave
+        )
 import Http
 import QueryString
-import RemoteData exposing (RemoteData)
+import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize(..))
 import TopBar.Model
@@ -40,7 +44,6 @@ import TopBar.Model
         , MiddleSection(..)
         , Model
         , PipelineState(..)
-        , isPaused
         )
 import TopBar.Msgs exposing (Msg(..))
 import TopBar.Styles as Styles
@@ -48,35 +51,19 @@ import UserState exposing (UserState(..))
 import Window
 
 
-type alias Flags =
-    { route : Routes.Route }
-
-
-query : Model -> String
-query model =
-    case model.middleSection of
-        SearchBar { query } ->
-            query
-
-        _ ->
-            ""
-
-
-init : Flags -> ( Model, List Effect )
-init { route } =
+init : Routes.Route -> ( Model, List Effect )
+init route =
     let
         isHd =
-            route == Routes.Dashboard { searchType = Routes.HighDensity }
+            route == Routes.Dashboard Routes.HighDensity
 
         middleSection =
             case route of
-                Routes.Dashboard { searchType } ->
-                    case searchType of
-                        Routes.Normal search ->
-                            SearchBar { query = Maybe.withDefault "" search, dropdown = Hidden }
+                Routes.Dashboard (Routes.Normal search) ->
+                    SearchBar { query = Maybe.withDefault "" search, dropdown = Hidden }
 
-                        Routes.HighDensity ->
-                            Empty
+                Routes.Dashboard Routes.HighDensity ->
+                    Empty
 
                 _ ->
                     Breadcrumbs route
@@ -92,15 +79,24 @@ init { route } =
     )
 
 
+queryString : Model -> String
+queryString model =
+    case model.middleSection of
+        SearchBar { query } ->
+            query
+
+        _ ->
+            ""
+
+
 queryStringFromSearch : String -> String
 queryStringFromSearch query =
-    case query of
-        "" ->
-            QueryString.render QueryString.empty
+    QueryString.render <|
+        if String.isEmpty query then
+            QueryString.empty
 
-        query ->
-            QueryString.render <|
-                QueryString.add "search" query QueryString.empty
+        else
+            QueryString.add "search" query QueryString.empty
 
 
 handleCallback : Callback -> Model -> ( Model, List Effect )
@@ -118,11 +114,11 @@ handleCallback callback model =
             , [ NavigateTo <| Routes.toString redirectUrl ]
             )
 
-        LoggedOut (Err err) ->
-            flip always (Debug.log "failed to log out" err) <|
+        LoggedOut (Err _) ->
+            Debug.log "failed to log out"
                 ( model, [] )
 
-        APIDataFetched (Ok ( time, data )) ->
+        APIDataFetched (Ok ( _, data )) ->
             ( { model
                 | teams = RemoteData.Success data.teams
                 , middleSection =
@@ -181,7 +177,7 @@ update msg model =
                 newModel =
                     case model.middleSection of
                         SearchBar r ->
-                            { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Nothing } } }
+                            { model | middleSection = SearchBar { r | dropdown = Shown Nothing } }
 
                         _ ->
                             model
@@ -211,33 +207,24 @@ update msg model =
                     case model.middleSection of
                         SearchBar r ->
                             case r.dropdown of
-                                Shown { selectedIdx } ->
-                                    case selectedIdx of
-                                        Nothing ->
-                                            let
-                                                options =
-                                                    dropdownOptions { query = r.query, teams = model.teams }
+                                Shown selectedIdx ->
+                                    let
+                                        options =
+                                            dropdownOptions { query = r.query, teams = model.teams }
 
-                                                lastItem =
+                                        newSelection =
+                                            case selectedIdx of
+                                                Nothing ->
                                                     List.length options - 1
-                                            in
-                                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just lastItem } } }
-                                            , []
-                                            )
 
-                                        Just selectedIdx ->
-                                            let
-                                                options =
-                                                    dropdownOptions { query = r.query, teams = model.teams }
+                                                Just sIdx ->
+                                                    (sIdx - 1) % List.length options
+                                    in
+                                    ( { model | middleSection = SearchBar { r | dropdown = Shown (Just newSelection) } }
+                                    , []
+                                    )
 
-                                                newSelection =
-                                                    (selectedIdx - 1) % List.length options
-                                            in
-                                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just newSelection } } }
-                                            , []
-                                            )
-
-                                _ ->
+                                Hidden ->
                                     ( model, [] )
 
                         _ ->
@@ -248,30 +235,24 @@ update msg model =
                     case model.middleSection of
                         SearchBar r ->
                             case r.dropdown of
-                                Shown { selectedIdx } ->
-                                    case selectedIdx of
-                                        Nothing ->
-                                            let
-                                                options =
-                                                    dropdownOptions { query = r.query, teams = model.teams }
-                                            in
-                                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just 0 } } }
-                                            , []
-                                            )
+                                Shown selectedIdx ->
+                                    let
+                                        options =
+                                            dropdownOptions { query = r.query, teams = model.teams }
 
-                                        Just selectedIdx ->
-                                            let
-                                                options =
-                                                    dropdownOptions { query = r.query, teams = model.teams }
+                                        newSelection =
+                                            case selectedIdx of
+                                                Nothing ->
+                                                    0
 
-                                                newSelection =
-                                                    (selectedIdx + 1) % List.length options
-                                            in
-                                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Just newSelection } } }
-                                            , []
-                                            )
+                                                Just sIdx ->
+                                                    (sIdx + 1) % List.length options
+                                    in
+                                    ( { model | middleSection = SearchBar { r | dropdown = Shown (Just newSelection) } }
+                                    , []
+                                    )
 
-                                _ ->
+                                Hidden ->
                                     ( model, [] )
 
                         _ ->
@@ -282,31 +263,29 @@ update msg model =
                     case model.middleSection of
                         SearchBar r ->
                             case r.dropdown of
-                                Shown { selectedIdx } ->
-                                    case selectedIdx of
-                                        Nothing ->
-                                            ( model, [] )
+                                Shown (Just selectedIdx) ->
+                                    let
+                                        options =
+                                            Array.fromList (dropdownOptions { query = r.query, teams = model.teams })
 
-                                        Just selectedIdx ->
-                                            let
-                                                options =
-                                                    Array.fromList (dropdownOptions { query = r.query, teams = model.teams })
+                                        selectedItem =
+                                            Maybe.withDefault r.query (Array.get selectedIdx options)
+                                    in
+                                    ( { model
+                                        | middleSection =
+                                            SearchBar
+                                                { r
+                                                    | dropdown = Shown Nothing
+                                                    , query = selectedItem
+                                                }
+                                      }
+                                    , []
+                                    )
 
-                                                selectedItem =
-                                                    Maybe.withDefault r.query (Array.get selectedIdx options)
-                                            in
-                                            ( { model
-                                                | middleSection =
-                                                    SearchBar
-                                                        { r
-                                                            | dropdown = Shown { selectedIdx = Nothing }
-                                                            , query = selectedItem
-                                                        }
-                                              }
-                                            , []
-                                            )
+                                Shown Nothing ->
+                                    ( model, [] )
 
-                                _ ->
+                                Hidden ->
                                     ( model, [] )
 
                         _ ->
@@ -317,39 +296,16 @@ update msg model =
                     case model.middleSection of
                         SearchBar r ->
                             case r.dropdown of
-                                Shown { selectedIdx } ->
-                                    case selectedIdx of
-                                        Nothing ->
-                                            let
-                                                newModel =
-                                                    case model.middleSection of
-                                                        SearchBar r ->
-                                                            if model.screenSize == Mobile && r.query == "" then
-                                                                { model | middleSection = MinifiedSearch }
+                                Shown _ ->
+                                    let
+                                        newModel =
+                                            if model.screenSize == Mobile && r.query == "" then
+                                                { model | middleSection = MinifiedSearch }
 
-                                                            else
-                                                                { model | middleSection = SearchBar { r | dropdown = Hidden } }
-
-                                                        _ ->
-                                                            model
-                                            in
-                                            ( newModel, [] )
-
-                                        Just selectedIdx ->
-                                            let
-                                                newModel =
-                                                    case model.middleSection of
-                                                        SearchBar r ->
-                                                            if model.screenSize == Mobile && r.query == "" then
-                                                                { model | middleSection = MinifiedSearch }
-
-                                                            else
-                                                                { model | middleSection = SearchBar { r | dropdown = Hidden } }
-
-                                                        _ ->
-                                                            model
-                                            in
-                                            ( newModel, [] )
+                                            else
+                                                { model | middleSection = SearchBar { r | dropdown = Hidden } }
+                                    in
+                                    ( newModel, [] )
 
                                 _ ->
                                     ( model, [] )
@@ -361,7 +317,7 @@ update msg model =
                 _ ->
                     case model.middleSection of
                         SearchBar r ->
-                            ( { model | middleSection = SearchBar { r | dropdown = Shown { selectedIdx = Nothing } } }, [] )
+                            ( { model | middleSection = SearchBar { r | dropdown = Shown Nothing } }, [] )
 
                         _ ->
                             ( model, [] )
@@ -446,12 +402,12 @@ view : UserState -> PipelineState -> Model -> Html Msg
 view userState pipelineState model =
     Html.div
         [ id "top-bar-app"
-        , style <| Styles.topBar <| isPaused pipelineState
+        , style <| Styles.topBar <| TopBar.Model.isPaused pipelineState
         ]
         (viewConcourseLogo
             ++ viewMiddleSection model
             ++ viewPin pipelineState model
-            ++ viewLogin userState model (isPaused pipelineState)
+            ++ viewLogin userState model (TopBar.Model.isPaused pipelineState)
         )
 
 
@@ -500,8 +456,8 @@ viewLoginState userState isUserMenuExpanded isPaused =
                 , style (Styles.loginContainer isPaused)
                 ]
                 [ Html.div [ id "user-id", style Styles.loginItem ]
-                    ([ Html.div [ style Styles.loginText ] [ Html.text (userDisplayName user) ] ]
-                        ++ (if isUserMenuExpanded then
+                    (Html.div [ style Styles.loginText ] [ Html.text (userDisplayName user) ]
+                        :: (if isUserMenuExpanded then
                                 [ Html.div [ id "logout-button", style Styles.logoutButton, onClick LogOut ] [ Html.text "logout" ] ]
 
                             else
@@ -526,7 +482,7 @@ viewMiddleSection model =
             []
 
         MinifiedSearch ->
-            [ Html.div [ style <| Styles.showSearchContainer model ]
+            [ Html.div [ style <| Styles.showSearchContainer model.highDensity ]
                 [ Html.a
                     [ id "show-search-button"
                     , onClick ShowSearchInput
@@ -577,7 +533,7 @@ viewDropdownItems { query, dropdown } model =
         Hidden ->
             []
 
-        Shown { selectedIdx } ->
+        Shown selectedIdx ->
             let
                 dropdownItem : Int -> String -> Html Msg
                 dropdownItem idx text =
@@ -631,25 +587,25 @@ viewConcourseLogo =
 viewBreadcrumbs : Routes.Route -> List (Html Msg)
 viewBreadcrumbs route =
     case route of
-        Routes.Pipeline { id } ->
-            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName } ]
+        Routes.Pipeline r ->
+            [ viewPipelineBreadcrumb { teamName = r.id.teamName, pipelineName = r.id.pipelineName } ]
 
-        Routes.Build { id } ->
-            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName }
+        Routes.Build r ->
+            [ viewPipelineBreadcrumb { teamName = r.id.teamName, pipelineName = r.id.pipelineName }
             , viewBreadcrumbSeparator
-            , viewJobBreadcrumb id.jobName
+            , viewJobBreadcrumb r.id.jobName
             ]
 
-        Routes.Resource { id } ->
-            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName }
+        Routes.Resource r ->
+            [ viewPipelineBreadcrumb { teamName = r.id.teamName, pipelineName = r.id.pipelineName }
             , viewBreadcrumbSeparator
-            , viewResourceBreadcrumb id.resourceName
+            , viewResourceBreadcrumb r.id.resourceName
             ]
 
-        Routes.Job { id } ->
-            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName }
+        Routes.Job r ->
+            [ viewPipelineBreadcrumb { teamName = r.id.teamName, pipelineName = r.id.pipelineName }
             , viewBreadcrumbSeparator
-            , viewJobBreadcrumb id.jobName
+            , viewJobBreadcrumb r.id.jobName
             ]
 
         _ ->
@@ -739,14 +695,13 @@ viewPin pipelineState model =
                         , onMouseEnter TogglePinIconDropdown
                         , onMouseLeave TogglePinIconDropdown
                         ]
-                        ([ Html.div
+                        (Html.div
                             [ style Styles.pinBadge
                             , id "pin-badge"
                             ]
                             [ Html.div [] [ Html.text <| toString <| List.length pinnedResources ]
                             ]
-                         ]
-                            ++ viewPinDropdown pinnedResources pipeline model
+                            :: viewPinDropdown pinnedResources pipeline model
                         )
 
                   else

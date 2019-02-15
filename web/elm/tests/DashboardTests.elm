@@ -2828,7 +2828,7 @@ whenOnDashboard { highDensity } =
         { csrfToken = ""
         , turbulencePath = ""
         , pipelineRunningKeyframes = pipelineRunningKeyframes
-        , searchType =
+        , dashboardType =
             if highDensity then
                 Routes.HighDensity
 

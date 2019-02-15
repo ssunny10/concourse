@@ -33,9 +33,13 @@ type MiddleSection
     | Empty
 
 
+type alias SelectedIndex =
+    Maybe Int
+
+
 type Dropdown
     = Hidden
-    | Shown { selectedIdx : Maybe Int }
+    | Shown SelectedIndex
 
 
 type PipelineState
@@ -43,7 +47,7 @@ type PipelineState
     | HasPipeline
         { pinnedResources : List ( String, Concourse.Version )
         , pipeline : Concourse.PipelineIdentifier
-        , isPaused : Bool
+        , paused : Bool
         }
 
 
@@ -53,5 +57,5 @@ isPaused pipeline =
         None ->
             False
 
-        HasPipeline { isPaused } ->
-            isPaused
+        HasPipeline { paused } ->
+            paused

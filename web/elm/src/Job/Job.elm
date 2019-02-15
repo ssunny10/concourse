@@ -94,7 +94,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            TopBar.init { route = Routes.Job { id = flags.jobId, page = flags.paging } }
+            TopBar.init (Routes.Job { id = flags.jobId, page = flags.paging })
 
         model =
             { jobIdentifier = flags.jobId

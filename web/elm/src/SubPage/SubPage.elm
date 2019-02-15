@@ -25,7 +25,6 @@ import Pipeline.Pipeline as Pipeline
 import Resource.Models
 import Resource.Resource as Resource
 import Routes
-import String
 import SubPage.Msgs exposing (Msg(..))
 import Subscription exposing (Subscription)
 import UpdateMsg exposing (UpdateMsg)
@@ -93,16 +92,16 @@ init flags route =
                 }
                 |> Tuple.mapFirst PipelineModel
 
-        Routes.Dashboard { searchType } ->
+        Routes.Dashboard dashboardType ->
             Dashboard.init
                 { turbulencePath = flags.turbulencePath
                 , csrfToken = flags.csrfToken
-                , searchType = searchType
+                , dashboardType = dashboardType
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
                 }
                 |> Tuple.mapFirst DashboardModel
 
-        Routes.FlySuccess { flyPort } ->
+        Routes.FlySuccess flyPort ->
             FlySuccess.init
                 { authToken = flags.authToken
                 , flyPort = flyPort
@@ -151,51 +150,50 @@ handleCallback csrfToken callback model =
             Build.handleCallback callback { buildModel | csrfToken = csrfToken }
                 |> Tuple.mapFirst BuildModel
 
-        JobModel model ->
-            Job.handleCallback callback { model | csrfToken = csrfToken }
+        JobModel jobModel ->
+            Job.handleCallback callback { jobModel | csrfToken = csrfToken }
                 |> Tuple.mapFirst JobModel
 
-        PipelineModel model ->
-            Pipeline.handleCallback callback model
+        PipelineModel pipelineModel ->
+            Pipeline.handleCallback callback pipelineModel
                 |> Tuple.mapFirst PipelineModel
 
-        ResourceModel model ->
-            Resource.handleCallback callback { model | csrfToken = csrfToken }
+        ResourceModel resourceModel ->
+            Resource.handleCallback callback { resourceModel | csrfToken = csrfToken }
                 |> Tuple.mapFirst ResourceModel
 
-        DashboardModel model ->
-            Dashboard.handleCallback callback model
+        DashboardModel dashboardModel ->
+            Dashboard.handleCallback callback dashboardModel
                 |> Tuple.mapFirst DashboardModel
 
-        FlySuccessModel model ->
-            FlySuccess.handleCallback callback model
+        FlySuccessModel flySuccessModel ->
+            FlySuccess.handleCallback callback flySuccessModel
                 |> Tuple.mapFirst FlySuccessModel
 
-        NotFoundModel model ->
-            NotFound.handleCallback callback model
+        NotFoundModel notFoundModel ->
+            NotFound.handleCallback callback notFoundModel
                 |> Tuple.mapFirst NotFoundModel
 
 
 update :
     String
-    -> String
     -> Concourse.CSRFToken
     -> Routes.Route
     -> Msg
     -> Model
     -> ( Model, List Effect )
-update turbulence notFound csrfToken route msg mdl =
+update notFound csrfToken route msg mdl =
     case ( msg, mdl ) of
         ( NewCSRFToken c, BuildModel buildModel ) ->
             Build.update (Build.Msgs.NewCSRFToken c) buildModel
                 |> Tuple.mapFirst BuildModel
 
-        ( BuildMsg msg, BuildModel buildModel ) ->
+        ( BuildMsg message, BuildModel buildModel ) ->
             let
                 model =
                     { buildModel | csrfToken = csrfToken }
             in
-            Build.update msg model
+            Build.update message model
                 |> Tuple.mapFirst BuildModel
                 |> handleNotFound notFound route
 
@@ -235,7 +233,7 @@ update turbulence notFound csrfToken route msg mdl =
             NotFound.update message model
                 |> Tuple.mapFirst NotFoundModel
 
-        ( NewCSRFToken _, mdl ) ->
+        ( NewCSRFToken _, _ ) ->
             ( mdl, [] )
 
         unknown ->

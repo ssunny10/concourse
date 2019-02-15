@@ -16,7 +16,7 @@ spinner : String -> List (Html.Attribute msg) -> Html msg
 spinner size attrs =
     Html.div
         -- preloader-wrapper active
-        ([ style
+        (style
             [ ( "width", size )
             , ( "height", size )
             , ( "box-sizing", "border-box" )
@@ -24,8 +24,7 @@ spinner size attrs =
               , "container-rotate 1568ms linear infinite"
               )
             ]
-         ]
-            ++ attrs
+            :: attrs
         )
         [ Html.div
             -- spinner-layer spinner-blue-only

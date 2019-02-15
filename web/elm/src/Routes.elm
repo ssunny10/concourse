@@ -1,7 +1,8 @@
 module Routes exposing
-    ( Highlight(..)
+    ( DashboardType(..)
+    , FlyPort
+    , Highlight(..)
     , Route(..)
-    , SearchType(..)
     , StepID
     , buildRoute
     , dashboardRoute
@@ -40,13 +41,21 @@ type Route
     | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page }
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
-    | Dashboard { searchType : SearchType }
-    | FlySuccess { flyPort : Maybe Int }
+    | Dashboard DashboardType
+    | FlySuccess FlyPort
 
 
-type SearchType
+type alias FlyPort =
+    Maybe Int
+
+
+type alias SearchQuery =
+    Maybe String
+
+
+type DashboardType
     = HighDensity
-    | Normal (Maybe String)
+    | Normal SearchQuery
 
 
 type Highlight
@@ -94,9 +103,9 @@ parsePage since until limit =
                 , limit = l
                 }
 
-        ( Just s, Nothing, Just l ) ->
+        ( Just snc, Nothing, Just l ) ->
             Just
-                { direction = Pagination.Since s
+                { direction = Pagination.Since snc
                 , limit = l
                 }
 
@@ -165,14 +174,14 @@ pipeline =
 dashboard : Parser (Route -> a) a
 dashboard =
     oneOf
-        [ map (\s -> Dashboard { searchType = Normal s }) (s "" <?> stringParam "search")
-        , map (Dashboard { searchType = HighDensity }) (s "hd")
+        [ map (Dashboard << Normal) (s "" <?> stringParam "search")
+        , map (Dashboard HighDensity) (s "hd")
         ]
 
 
 flySuccess : Parser (Route -> a) a
 flySuccess =
-    map (\p -> FlySuccess { flyPort = p }) (s "fly_success" <?> intParam "fly_port")
+    map FlySuccess (s "fly_success" <?> intParam "fly_port")
 
 
 
@@ -210,10 +219,10 @@ pipelineRoute p =
 dashboardRoute : Bool -> Route
 dashboardRoute isHd =
     if isHd then
-        Dashboard { searchType = HighDensity }
+        Dashboard HighDensity
 
     else
-        Dashboard { searchType = Normal Nothing }
+        Dashboard (Normal Nothing)
 
 
 showHighlight : Highlight -> String
@@ -362,26 +371,20 @@ toString route =
                             "?groups=" ++ String.join "&groups=" gs
                    )
 
-        Dashboard { searchType } ->
-            case searchType of
-                Normal (Just search) ->
-                    "/?search=" ++ search
+        Dashboard (Normal (Just search)) ->
+            "/?search=" ++ search
 
-                Normal Nothing ->
-                    "/"
+        Dashboard (Normal Nothing) ->
+            "/"
 
-                HighDensity ->
-                    "/hd"
+        Dashboard HighDensity ->
+            "/hd"
 
-        FlySuccess { flyPort } ->
+        FlySuccess (Just flyPort) ->
+            "/fly_success?fly_port=" ++ Basics.toString flyPort
+
+        FlySuccess Nothing ->
             "/fly_success"
-                ++ (case flyPort of
-                        Nothing ->
-                            ""
-
-                        Just fp ->
-                            "?fly_port=" ++ Basics.toString fp
-                   )
 
 
 highlight : Parser (Highlight -> a) a
@@ -419,7 +422,7 @@ parsePath location =
                 |> f
 
         _ ->
-            Dashboard { searchType = Normal Nothing }
+            Dashboard (Normal Nothing)
 
 
 

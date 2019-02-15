@@ -79,13 +79,8 @@ topBar isPaused =
     ]
 
 
-showSearchContainer :
-    { a
-        | screenSize : ScreenSize
-        , highDensity : Bool
-    }
-    -> List ( String, String )
-showSearchContainer { screenSize, highDensity } =
+showSearchContainer : Bool -> List ( String, String )
+showSearchContainer highDensity =
     let
         flexLayout =
             if highDensity then

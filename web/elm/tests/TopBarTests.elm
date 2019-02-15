@@ -109,14 +109,16 @@ all : Test
 all =
     describe "TopBar"
         [ rspecStyleDescribe "on init"
-            (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } }
+            (Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                |> TopBar.init
                 |> Tuple.second
             )
             [ it "requests screen size" <|
                 Expect.equal [ Effects.GetScreenSize ]
             ]
         , rspecStyleDescribe "when on pipeline page"
-            (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } }
+            (Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                |> TopBar.init
                 |> Tuple.first
             )
             [ context "when login state unknown"
@@ -266,7 +268,7 @@ all =
                     (Model.HasPipeline
                         { pinnedResources = []
                         , pipeline = { teamName = "t", pipelineName = "p" }
-                        , isPaused = True
+                        , paused = True
                         }
                     )
                     >> toUnstyled
@@ -283,7 +285,8 @@ all =
                 ]
             ]
         , rspecStyleDescribe "rendering user menus on clicks"
-            (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } }
+            (Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                |> TopBar.init
                 |> Tuple.first
             )
             [ it "shows user menu when ToggleUserMenu msg is received" <|
@@ -337,7 +340,8 @@ all =
                     >> Query.has [ text "login" ]
             ]
         , rspecStyleDescribe "login component when user is logged out"
-            (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } }
+            (Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                |> TopBar.init
                 |> Tuple.first
                 |> viewNormally
             )
@@ -375,7 +379,9 @@ all =
                         ]
             ]
         , rspecStyleDescribe "when triggering a log in message"
-            (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } })
+            (Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                |> TopBar.init
+            )
             [ it "redirects to login page when you click login" <|
                 Tuple.first
                     >> TopBar.update Msgs.LogIn
@@ -383,7 +389,8 @@ all =
                     >> Expect.equal [ Effects.RedirectToLogin ]
             ]
         , rspecStyleDescribe "rendering top bar on build page"
-            (TopBar.init { route = Routes.Build { id = { teamName = "team", pipelineName = "pipeline", jobName = "job", buildName = "1" }, highlight = Routes.HighlightNothing } }
+            (Routes.Build { id = { teamName = "team", pipelineName = "pipeline", jobName = "job", buildName = "1" }, highlight = Routes.HighlightNothing }
+                |> TopBar.init
                 |> Tuple.first
                 |> viewNormally
             )
@@ -407,7 +414,8 @@ all =
                     >> Query.has [ text "job" ]
             ]
         , rspecStyleDescribe "rendering top bar on resource page"
-            (TopBar.init { route = Routes.Resource { id = { teamName = "team", pipelineName = "pipeline", resourceName = "resource" }, page = Nothing } }
+            (Routes.Resource { id = { teamName = "team", pipelineName = "pipeline", resourceName = "resource" }, page = Nothing }
+                |> TopBar.init
                 |> Tuple.first
                 |> viewNormally
             )
@@ -443,7 +451,8 @@ all =
                         [ text "resource" ]
             ]
         , rspecStyleDescribe "rendering top bar on job page"
-            (TopBar.init { route = Routes.Job { id = { teamName = "team", pipelineName = "pipeline", jobName = "job" }, page = Nothing } }
+            (Routes.Job { id = { teamName = "team", pipelineName = "pipeline", jobName = "job" }, page = Nothing }
+                |> TopBar.init
                 |> Tuple.first
                 |> viewNormally
             )
@@ -465,7 +474,8 @@ all =
                         ]
             ]
         , rspecStyleDescribe "when checking search bar values"
-            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal (Just "test") } }
+            (Routes.Dashboard (Routes.Normal (Just "test"))
+                |> TopBar.init
                 |> Tuple.first
             )
             [ it "renders the search bar with the text in the search query" <|
@@ -481,7 +491,7 @@ all =
             , it "clears search query when FilterMsg is received with blank" <|
                 TopBar.update (Msgs.FilterMsg "")
                     >> Tuple.first
-                    >> TopBar.query
+                    >> TopBar.queryString
                     >> Expect.equal ""
             , it "clear search button has full opacity when there is a query" <|
                 viewNormally
@@ -489,7 +499,8 @@ all =
                     >> Query.has [ style [ ( "opacity", "1" ) ] ]
             ]
         , rspecStyleDescribe "rendering search bar on dashboard page"
-            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal Nothing } }
+            (Routes.Dashboard (Routes.Normal Nothing)
+                |> TopBar.init
                 |> Tuple.first
             )
             [ context "when desktop sized"
@@ -739,13 +750,14 @@ all =
                 ]
             ]
         , rspecStyleDescribe "when search query is updated"
-            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal Nothing } }
+            (Routes.Dashboard (Routes.Normal Nothing)
+                |> TopBar.init
                 |> Tuple.first
             )
             [ it "search item is modified" <|
                 TopBar.update (Msgs.FilterMsg "test")
                     >> Tuple.first
-                    >> TopBar.query
+                    >> TopBar.queryString
                     >> Expect.equal "test"
             , it "shows the list of statuses when `status:` is typed in the search bar" <|
                 TopBar.update Msgs.FocusMsg
@@ -779,7 +791,8 @@ all =
                     >> Query.count (Expect.equal 0)
             ]
         , rspecStyleDescribe "when search query is `status:`"
-            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal (Just "status:") } }
+            (Routes.Dashboard (Routes.Normal (Just "status:"))
+                |> TopBar.init
                 |> Tuple.first
             )
             [ it "should display a dropdown of status options when the search bar is focused" <|
@@ -800,7 +813,8 @@ all =
                         ]
             ]
         , rspecStyleDescribe "when the search query is `team:`"
-            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal (Just "team:") } }
+            (Routes.Dashboard (Routes.Normal (Just "team:"))
+                |> TopBar.init
                 |> Tuple.first
             )
             [ it "when the user is not logged in the dropdown is empty" <|
@@ -872,7 +886,8 @@ all =
                     >> Query.count (Expect.equal 10)
             ]
         , rspecStyleDescribe "dropdown stuff"
-            (TopBar.init { route = Routes.Dashboard { searchType = Routes.Normal Nothing } }
+            (Routes.Dashboard (Routes.Normal Nothing)
+                |> TopBar.init
                 |> Tuple.first
             )
             [ context "before receiving FocusMsg"

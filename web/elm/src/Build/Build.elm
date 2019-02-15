@@ -94,7 +94,7 @@ init flags =
                     Routes.Build { id = buildId, highlight = flags.highlight }
 
         ( topBar, topBarEffects ) =
-            TopBar.init { route = route }
+            TopBar.init route
 
         ( model, effects ) =
             changeToBuild
