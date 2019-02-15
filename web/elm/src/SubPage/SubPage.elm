@@ -1,4 +1,4 @@
-module SubPage exposing
+module SubPage.SubPage exposing
     ( Model(..)
     , handleCallback
     , handleNotFound
@@ -9,26 +9,27 @@ module SubPage exposing
     , view
     )
 
-import Build
+import Build.Build as Build
 import Build.Models
 import Build.Msgs
 import Callback exposing (Callback)
 import Concourse
-import Dashboard
+import Dashboard.Dashboard as Dashboard
 import Effects exposing (Effect)
-import FlySuccess
+import FlySuccess.FlySuccess as FlySuccess
 import Html exposing (Html)
 import Html.Styled as HS
-import Job
+import Job.Job as Job
 import NotFound
-import Pipeline
-import Resource
+import Pipeline.Pipeline as Pipeline
 import Resource.Models
+import Resource.Resource as Resource
 import Routes
 import String
 import SubPage.Msgs exposing (Msg(..))
 import Subscription exposing (Subscription)
 import UpdateMsg exposing (UpdateMsg)
+import UserState exposing (UserState)
 
 
 type Model
@@ -52,79 +53,56 @@ type alias Flags =
 init : Flags -> Routes.Route -> ( Model, List Effect )
 init flags route =
     case route of
-        Routes.Build teamName pipelineName jobName buildName highlight ->
-            Build.Models.JobBuildPage
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , jobName = jobName
-                , buildName = buildName
+        Routes.Build { id, highlight } ->
+            Build.init
+                { csrfToken = flags.csrfToken
+                , highlight = highlight
+                , pageType = Build.Models.JobBuildPage id
                 }
-                |> Build.init
-                    { csrfToken = flags.csrfToken
-                    , highlight = highlight
-                    }
                 |> Tuple.mapFirst BuildModel
 
-        Routes.OneOffBuild buildId highlight ->
-            Build.Models.BuildPage (Result.withDefault 0 (String.toInt buildId))
-                |> Build.init
-                    { csrfToken = flags.csrfToken
-                    , highlight = highlight
-                    }
+        Routes.OneOffBuild { id, highlight } ->
+            Build.init
+                { csrfToken = flags.csrfToken
+                , highlight = highlight
+                , pageType = Build.Models.OneOffBuildPage id
+                }
                 |> Tuple.mapFirst BuildModel
 
-        Routes.Resource teamName pipelineName resourceName page ->
+        Routes.Resource { id, page } ->
             Resource.init
-                { resourceName = resourceName
-                , teamName = teamName
-                , pipelineName = pipelineName
+                { resourceId = id
                 , paging = page
                 , csrfToken = flags.csrfToken
                 }
                 |> Tuple.mapFirst ResourceModel
 
-        Routes.Job teamName pipelineName jobName page ->
+        Routes.Job { id, page } ->
             Job.init
-                { jobName = jobName
-                , teamName = teamName
-                , pipelineName = pipelineName
+                { jobId = id
                 , paging = page
                 , csrfToken = flags.csrfToken
                 }
                 |> Tuple.mapFirst JobModel
 
-        Routes.Pipeline teamName pipelineName groups ->
+        Routes.Pipeline { id, groups } ->
             Pipeline.init
-                { teamName = teamName
-                , pipelineName = pipelineName
+                { pipelineLocator = id
                 , turbulenceImgSrc = flags.turbulencePath
                 , selectedGroups = groups
                 }
                 |> Tuple.mapFirst PipelineModel
 
-        Routes.Dashboard (Routes.Normal search) ->
+        Routes.Dashboard { searchType } ->
             Dashboard.init
                 { turbulencePath = flags.turbulencePath
                 , csrfToken = flags.csrfToken
-                , search = search |> Maybe.withDefault ""
-                , highDensity = False
+                , searchType = searchType
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
-                , route = route
                 }
                 |> Tuple.mapFirst DashboardModel
 
-        Routes.Dashboard Routes.HighDensity ->
-            Dashboard.init
-                { turbulencePath = flags.turbulencePath
-                , csrfToken = flags.csrfToken
-                , search = ""
-                , highDensity = True
-                , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
-                , route = route
-                }
-                |> Tuple.mapFirst DashboardModel
-
-        Routes.FlySuccess flyPort ->
+        Routes.FlySuccess { flyPort } ->
             FlySuccess.init
                 { authToken = flags.authToken
                 , flyPort = flyPort
@@ -132,11 +110,12 @@ init flags route =
                 |> Tuple.mapFirst FlySuccessModel
 
 
-handleNotFound : String -> ( Model, List Effect ) -> ( Model, List Effect )
-handleNotFound notFound ( model, effects ) =
+handleNotFound : String -> Routes.Route -> ( Model, List Effect ) -> ( Model, List Effect )
+handleNotFound notFound route ( model, effects ) =
     case getUpdateMessage model of
         UpdateMsg.NotFound ->
-            ( NotFoundModel { notFoundImgSrc = notFound }, [ Effects.SetTitle "Not Found " ] )
+            NotFound.init { notFoundImgSrc = notFound, route = route }
+                |> Tuple.mapFirst NotFoundModel
 
         UpdateMsg.AOK ->
             ( model, effects )
@@ -192,18 +171,20 @@ handleCallback csrfToken callback model =
             FlySuccess.handleCallback callback model
                 |> Tuple.mapFirst FlySuccessModel
 
-        _ ->
-            ( model, [] )
+        NotFoundModel model ->
+            NotFound.handleCallback callback model
+                |> Tuple.mapFirst NotFoundModel
 
 
 update :
     String
     -> String
     -> Concourse.CSRFToken
+    -> Routes.Route
     -> Msg
     -> Model
     -> ( Model, List Effect )
-update turbulence notFound csrfToken msg mdl =
+update turbulence notFound csrfToken route msg mdl =
     case ( msg, mdl ) of
         ( NewCSRFToken c, BuildModel buildModel ) ->
             Build.update (Build.Msgs.NewCSRFToken c) buildModel
@@ -216,7 +197,7 @@ update turbulence notFound csrfToken msg mdl =
             in
             Build.update msg model
                 |> Tuple.mapFirst BuildModel
-                |> handleNotFound notFound
+                |> handleNotFound notFound route
 
         ( NewCSRFToken c, JobModel model ) ->
             ( JobModel { model | csrfToken = c }, [] )
@@ -224,12 +205,12 @@ update turbulence notFound csrfToken msg mdl =
         ( JobMsg message, JobModel model ) ->
             Job.update message { model | csrfToken = csrfToken }
                 |> Tuple.mapFirst JobModel
-                |> handleNotFound notFound
+                |> handleNotFound notFound route
 
         ( PipelineMsg message, PipelineModel model ) ->
             Pipeline.update message model
                 |> Tuple.mapFirst PipelineModel
-                |> handleNotFound notFound
+                |> handleNotFound notFound route
 
         ( NewCSRFToken c, ResourceModel model ) ->
             ( ResourceModel { model | csrfToken = c }, [] )
@@ -237,7 +218,7 @@ update turbulence notFound csrfToken msg mdl =
         ( ResourceMsg message, ResourceModel model ) ->
             Resource.update message { model | csrfToken = csrfToken }
                 |> Tuple.mapFirst ResourceModel
-                |> handleNotFound notFound
+                |> handleNotFound notFound route
 
         ( NewCSRFToken c, DashboardModel model ) ->
             ( DashboardModel { model | csrfToken = c }, [] )
@@ -250,6 +231,10 @@ update turbulence notFound csrfToken msg mdl =
             FlySuccess.update message model
                 |> Tuple.mapFirst FlySuccessModel
 
+        ( NotFoundMsg message, NotFoundModel model ) ->
+            NotFound.update message model
+                |> Tuple.mapFirst NotFoundModel
+
         ( NewCSRFToken _, mdl ) ->
             ( mdl, [] )
 
@@ -261,84 +246,73 @@ update turbulence notFound csrfToken msg mdl =
 urlUpdate : Routes.Route -> Model -> ( Model, List Effect )
 urlUpdate route model =
     case ( route, model ) of
-        ( Routes.Pipeline team pipeline groups, PipelineModel mdl ) ->
-            Pipeline.changeToPipelineAndGroups
-                { teamName = team
-                , pipelineName = pipeline
-                , turbulenceImgSrc = mdl.turbulenceImgSrc
-                , selectedGroups = groups
-                }
-                mdl
+        ( Routes.Pipeline { id, groups }, PipelineModel mdl ) ->
+            mdl
+                |> Pipeline.changeToPipelineAndGroups
+                    { pipelineLocator = id
+                    , turbulenceImgSrc = mdl.turbulenceImgSrc
+                    , selectedGroups = groups
+                    }
                 |> Tuple.mapFirst PipelineModel
 
-        ( Routes.Resource teamName pipelineName resourceName page, ResourceModel mdl ) ->
-            Resource.changeToResource
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , resourceName = resourceName
-                , paging = page
-                , csrfToken = mdl.csrfToken
-                }
-                mdl
+        ( Routes.Resource { id, page }, ResourceModel mdl ) ->
+            mdl
+                |> Resource.changeToResource
+                    { resourceId = id
+                    , paging = page
+                    , csrfToken = mdl.csrfToken
+                    }
                 |> Tuple.mapFirst ResourceModel
 
-        ( Routes.Job teamName pipelineName jobName page, JobModel mdl ) ->
-            Job.changeToJob
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , jobName = jobName
-                , paging = page
-                , csrfToken = mdl.csrfToken
-                }
-                mdl
+        ( Routes.Job { id, page }, JobModel mdl ) ->
+            mdl
+                |> Job.changeToJob
+                    { jobId = id
+                    , paging = page
+                    , csrfToken = mdl.csrfToken
+                    }
                 |> Tuple.mapFirst JobModel
 
-        ( Routes.Build teamName pipelineName jobName buildName highlight, BuildModel buildModel ) ->
-            Build.changeToBuild
-                (Build.Models.JobBuildPage
-                    { teamName = teamName
-                    , pipelineName = pipelineName
-                    , jobName = jobName
-                    , buildName = buildName
-                    }
-                )
-                { buildModel | highlight = highlight }
+        ( Routes.Build { id, highlight }, BuildModel buildModel ) ->
+            { buildModel | highlight = highlight }
+                |> Build.changeToBuild (Build.Models.JobBuildPage id)
                 |> Tuple.mapFirst BuildModel
 
         _ ->
             ( model, [] )
 
 
-view : Model -> Html Msg
-view mdl =
+view : UserState -> Model -> Html Msg
+view userState mdl =
     case mdl of
         BuildModel model ->
-            Build.view model
+            Build.view userState model
                 |> Html.map BuildMsg
 
         JobModel model ->
-            Job.view model
+            Job.view userState model
                 |> Html.map JobMsg
 
         PipelineModel model ->
-            Pipeline.view model
+            Pipeline.view userState model
                 |> Html.map PipelineMsg
 
         ResourceModel model ->
-            Resource.view model
+            Resource.view userState model
                 |> HS.toUnstyled
                 |> Html.map ResourceMsg
 
         DashboardModel model ->
-            Dashboard.view model
+            Dashboard.view userState model
                 |> HS.toUnstyled
                 |> Html.map DashboardMsg
 
         NotFoundModel model ->
-            NotFound.view model
+            NotFound.view userState model
+                |> Html.map NotFoundMsg
 
         FlySuccessModel model ->
-            FlySuccess.view model
+            FlySuccess.view userState model
                 |> Html.map FlySuccessMsg
 
 

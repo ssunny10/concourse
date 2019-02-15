@@ -1,16 +1,21 @@
 module TopBar.Msgs exposing (Msg(..))
 
-import Concourse
+import Keyboard
 import Routes
-import Time
+import Window
 
 
 type Msg
-    = FetchUser Time.Time
-    | FetchPipeline Concourse.PipelineIdentifier
+    = LogIn
     | LogOut
-    | LogIn
-    | ResetToPipeline Routes.Route
+    | FilterMsg String
+    | FocusMsg
+    | BlurMsg
+    | KeyDown Keyboard.KeyCode
+    | KeyPressed Keyboard.KeyCode
     | ToggleUserMenu
+    | ShowSearchInput
+    | ResizeScreen Window.Size
     | TogglePinIconDropdown
     | GoToPinnedResource Routes.Route
+    | Noop

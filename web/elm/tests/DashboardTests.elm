@@ -16,8 +16,8 @@ import Char
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus
-import Dashboard
 import Dashboard.APIData as APIData
+import Dashboard.Dashboard as Dashboard
 import Dashboard.Group as Group
 import Dashboard.Msgs as Msgs
 import Date exposing (Date)
@@ -27,7 +27,7 @@ import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Html.Styled as HS
 import List.Extra
-import NewTopBar.Msgs
+import TopBar.Msgs
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -44,6 +44,7 @@ import Test.Html.Selector
         , text
         )
 import Time exposing (Time)
+import UserState
 
 
 almostBlack : String
@@ -461,7 +462,7 @@ all =
                     |> givenDataAndUser
                         (oneTeamOnePipelineNonPublic "team")
                         (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    |> Dashboard.update (Msgs.FromTopBar NewTopBar.Msgs.LogOut)
+                    |> Dashboard.update (Msgs.FromTopBar TopBar.Msgs.LogOut)
                     |> Tuple.first
                     |> showsLoadingState
         , test "links to specific builds" <|
@@ -2042,7 +2043,7 @@ all =
                                     (oneTeamOnePipeline "team")
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
                         , query =
-                            Dashboard.view
+                            Dashboard.view UserState.UserStateLoggedOut
                                 >> HS.toUnstyled
                                 >> Query.fromHtml
                                 >> Query.find [ class "card-footer" ]
@@ -2098,7 +2099,7 @@ all =
                                     (oneTeamOnePipelinePaused "team")
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
                         , query =
-                            Dashboard.view
+                            Dashboard.view UserState.UserStateLoggedOut
                                 >> HS.toUnstyled
                                 >> Query.fromHtml
                                 >> Query.find [ class "card-footer" ]
@@ -2425,6 +2426,10 @@ all =
                                     [ style
                                         [ ( "text-transform", "uppercase" ) ]
                                     ]
+                    , test "links to HD view" <|
+                        \_ ->
+                            hdToggle
+                                |> Query.has [ attribute <| Attr.href "/hd" ]
                     , test "displays the off state" <|
                         \_ ->
                             hdToggle
@@ -2470,6 +2475,16 @@ all =
                                         , ( "width", "35px" )
                                         ]
                                     ]
+                    , test "links to normal dashboard view" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = True }
+                                |> givenDataUnauthenticated
+                                    (apiData
+                                        [ ( "team", [ "pipeline" ] ) ]
+                                    )
+                                |> queryView
+                                |> findHDToggle
+                                |> Query.has [ attribute <| Attr.href "/" ]
                     , test "will not shrink on resizing" <|
                         \_ ->
                             whenOnDashboard { highDensity = True }
@@ -2812,22 +2827,20 @@ whenOnDashboard { highDensity } =
     Dashboard.init
         { csrfToken = ""
         , turbulencePath = ""
-        , search = ""
-        , highDensity = highDensity
         , pipelineRunningKeyframes = pipelineRunningKeyframes
-        , route =
+        , searchType =
             if highDensity then
-                Routes.Dashboard Routes.HighDensity
+                Routes.HighDensity
 
             else
-                Routes.Dashboard (Routes.Normal Nothing)
+                Routes.Normal Nothing
         }
         |> Tuple.first
 
 
 queryView : Dashboard.Model -> Query.Single Msgs.Msg
 queryView =
-    Dashboard.view
+    Dashboard.view UserState.UserStateLoggedOut
         >> HS.toUnstyled
         >> Query.fromHtml
 

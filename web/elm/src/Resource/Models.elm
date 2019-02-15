@@ -14,9 +14,8 @@ import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Date exposing (Date)
 import Pinned exposing (CommentState, ResourcePinState)
-import Routes
 import Time
-import UserState exposing (UserState)
+import TopBar.Model
 
 
 type Hoverable
@@ -45,9 +44,6 @@ type CheckStatus
 
 type alias Model =
     { pageStatus : Result PageError ()
-    , teamName : String
-    , pipelineName : String
-    , name : String
     , checkStatus : CheckStatus
     , checkError : String
     , checkSetupError : String
@@ -61,12 +57,7 @@ type alias Model =
     , csrfToken : String
     , showPinBarTooltip : Bool
     , pinIconHover : Bool
-    , route : Routes.Route
-    , pipeline : Maybe Concourse.Pipeline
-    , userState : UserState
-    , userMenuVisible : Bool
-    , pinnedResources : List ( String, Concourse.Version )
-    , showPinIconDropDown : Bool
+    , topBar : TopBar.Model.Model
     , pinCommentLoading : Bool
     , ctrlDown : Bool
     , textAreaFocused : Bool

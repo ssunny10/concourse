@@ -1,4 +1,4 @@
-module FlySuccess exposing
+module FlySuccess.FlySuccess exposing
     ( Model
     , handleCallback
     , init
@@ -21,19 +21,30 @@ import FlySuccess.Msgs exposing (Msg(..))
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, id, style)
+import Html.Attributes exposing (attribute, class, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Html.Styled as HS
+import Routes
+import TopBar.Model
+import TopBar.Styles
+import TopBar.TopBar as TopBar
+import UserState exposing (UserState)
 
 
 type alias Model =
     { buttonState : ButtonState
     , authToken : String
     , tokenTransfer : TokenTransfer
+    , topBar : TopBar.Model.Model
     }
 
 
 init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )
 init { authToken, flyPort } =
+    let
+        ( topBar, topBarEffects ) =
+            TopBar.init { route = Routes.FlySuccess { flyPort = flyPort } }
+    in
     ( { buttonState = Unhovered
       , authToken = authToken
       , tokenTransfer =
@@ -43,13 +54,16 @@ init { authToken, flyPort } =
 
                 Nothing ->
                     Just <| Err ()
+      , topBar = topBar
       }
-    , case flyPort of
-        Just fp ->
-            [ SendTokenToFly authToken fp ]
+    , topBarEffects
+        ++ (case flyPort of
+                Just fp ->
+                    [ SendTokenToFly authToken fp ]
 
-        Nothing ->
-            []
+                Nothing ->
+                    []
+           )
     )
 
 
@@ -60,7 +74,11 @@ handleCallback msg model =
             ( { model | tokenTransfer = Just <| Ok success }, [] )
 
         _ ->
-            ( model, [] )
+            let
+                ( newTopBar, topBarEffects ) =
+                    TopBar.handleCallback msg model.topBar
+            in
+            ( { model | topBar = newTopBar }, topBarEffects )
 
 
 update : Msg -> Model -> ( Model, List Effect )
@@ -74,24 +92,41 @@ update msg model =
         CopyToken ->
             ( { model | buttonState = Clicked }, [] )
 
+        FromTopBar msg ->
+            let
+                ( newTopBar, topBarEffects ) =
+                    TopBar.update msg model.topBar
+            in
+            ( { model | topBar = newTopBar }, topBarEffects )
 
-view : Model -> Html Msg
-view model =
-    Html.div
-        [ id "success-card"
-        , style Styles.card
-        ]
-        [ Html.p
-            [ id "success-card-title"
-            , style Styles.title
+
+view : UserState -> Model -> Html Msg
+view userState model =
+    Html.div []
+        [ Html.div
+            [ style TopBar.Styles.pageIncludingTopBar
+            , id "page-including-top-bar"
             ]
-            [ Html.text Text.title ]
-        , Html.div
-            [ id "success-card-body"
-            , style Styles.body
+            [ TopBar.view userState TopBar.Model.None model.topBar |> HS.toUnstyled |> Html.map FromTopBar
+            , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
+                [ Html.div
+                    [ id "success-card"
+                    , style Styles.card
+                    ]
+                    [ Html.p
+                        [ id "success-card-title"
+                        , style Styles.title
+                        ]
+                        [ Html.text Text.title ]
+                    , Html.div
+                        [ id "success-card-body"
+                        , style Styles.body
+                        ]
+                      <|
+                        body model
+                    ]
+                ]
             ]
-          <|
-            body model
         ]
 
 

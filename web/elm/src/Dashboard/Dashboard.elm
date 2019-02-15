@@ -1,4 +1,4 @@
-module Dashboard exposing
+module Dashboard.Dashboard exposing
     ( Model
     , handleCallback
     , init
@@ -42,8 +42,6 @@ import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
 import Monocle.Optional
 import MonocleHelpers exposing (..)
-import NewTopBar.Msgs
-import NewestTopBar as NewTopBar
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
 import Routes
@@ -52,16 +50,18 @@ import Simple.Fuzzy exposing (filter, match, root)
 import Subscription exposing (Subscription(..))
 import Task
 import Time exposing (Time)
-import UserState
+import TopBar.Model
+import TopBar.Msgs
+import TopBar.Styles
+import TopBar.TopBar as TopBar
+import UserState exposing (UserState)
 
 
 type alias Flags =
     { csrfToken : String
     , turbulencePath : String
-    , search : String
-    , highDensity : Bool
+    , searchType : Routes.SearchType
     , pipelineRunningKeyframes : String
-    , route : Routes.Route
     }
 
 
@@ -83,7 +83,7 @@ type alias Model =
     , version : String
     , userState : UserState.UserState
     , userMenuVisible : Bool
-    , topBar : NewTopBar.Model
+    , topBar : TopBar.Model.Model
     , hideFooter : Bool
     , hideFooterCounter : Int
     , showHelp : Bool
@@ -99,12 +99,12 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            NewTopBar.init { route = flags.route }
+            TopBar.init { route = Routes.Dashboard { searchType = flags.searchType } }
     in
     ( { state = RemoteData.NotAsked
       , csrfToken = flags.csrfToken
       , turbulencePath = flags.turbulencePath
-      , highDensity = flags.highDensity
+      , highDensity = flags.searchType == Routes.HighDensity
       , hoveredPipeline = Nothing
       , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
       , groups = []
@@ -132,7 +132,7 @@ handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback msg model =
     let
         ( newTopBar, topBarEffects ) =
-            NewTopBar.handleCallback msg model.topBar
+            TopBar.handleCallback msg model.topBar
 
         ( newModel, dashboardEffects ) =
             handleCallbackWithoutTopBar msg model
@@ -230,7 +230,7 @@ update : Msg -> Model -> ( Model, List Effect )
 update msg model =
     let
         ( newTopBar, topBarEffects ) =
-            NewTopBar.update (fromDashboardMsg msg) model.topBar
+            TopBar.update (fromDashboardMsg msg) model.topBar
 
         ( newModel, dashboardEffects ) =
             updateWithoutTopBar msg model
@@ -365,10 +365,10 @@ updateWithoutTopBar msg model =
         ResizeScreen size ->
             ( { model | screenSize = ScreenSize.fromWindowSize size }, [] )
 
-        FromTopBar NewTopBar.Msgs.LogOut ->
+        FromTopBar TopBar.Msgs.LogOut ->
             ( { model | state = RemoteData.NotAsked }, [] )
 
-        FromTopBar NewTopBar.Msgs.ToggleUserMenu ->
+        FromTopBar TopBar.Msgs.ToggleUserMenu ->
             ( { model | userMenuVisible = not model.userMenuVisible }, [] )
 
         FromTopBar m ->
@@ -387,17 +387,16 @@ subscriptions model =
     ]
 
 
-view : Model -> Html Msg
-view model =
-    Html.div
-        [ class "page"
-        , style
-            [ ( "-webkit-font-smoothing", "antialiased" )
-            , ( "font-weight", "700" )
+view : UserState -> Model -> Html Msg
+view userState model =
+    Html.div []
+        [ Html.div
+            [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
+            [ Html.map FromTopBar (TopBar.view userState TopBar.Model.None model.topBar)
+            , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
+                [ dashboardView model
+                ]
             ]
-        ]
-        [ Html.map FromTopBar (NewTopBar.view model.topBar)
-        , dashboardView model
         ]
 
 
@@ -423,7 +422,7 @@ dashboardView model =
                             ++ pipelinesView
                                 { groups = model.groups
                                 , substate = substate
-                                , query = NewTopBar.query model.topBar
+                                , query = TopBar.query model.topBar
                                 , hoveredPipeline = model.hoveredPipeline
                                 , pipelineRunningKeyframes =
                                     model.pipelineRunningKeyframes

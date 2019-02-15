@@ -1,4 +1,4 @@
-module Job exposing
+module Job.Job exposing
     ( Flags
     , Model
     , changeToJob
@@ -43,6 +43,7 @@ import Html.Events
         , onMouseEnter
         , onMouseLeave
         )
+import Html.Styled as HS
 import Http
 import Job.Msgs exposing (Hoverable(..), Msg(..))
 import LoadingIndicator
@@ -51,7 +52,11 @@ import Routes
 import StrictEvents exposing (onLeftClick)
 import Subscription exposing (Subscription(..))
 import Time exposing (Time)
+import TopBar.Model
+import TopBar.Styles
+import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
+import UserState exposing (UserState)
 
 
 type alias Model =
@@ -63,6 +68,7 @@ type alias Model =
     , now : Time
     , csrfToken : String
     , hovered : Hoverable
+    , topBar : TopBar.Model.Model
     }
 
 
@@ -78,9 +84,7 @@ jobBuildsPerPage =
 
 
 type alias Flags =
-    { jobName : String
-    , teamName : String
-    , pipelineName : String
+    { jobId : Concourse.JobIdentifier
     , paging : Maybe Page
     , csrfToken : String
     }
@@ -89,14 +93,11 @@ type alias Flags =
 init : Flags -> ( Model, List Effect )
 init flags =
     let
-        jobId =
-            { jobName = flags.jobName
-            , teamName = flags.teamName
-            , pipelineName = flags.pipelineName
-            }
+        ( topBar, topBarEffects ) =
+            TopBar.init { route = Routes.Job { id = flags.jobId, page = flags.paging } }
 
         model =
-            { jobIdentifier = jobId
+            { jobIdentifier = flags.jobId
             , job = RemoteData.NotAsked
             , pausedChanging = False
             , buildsWithResources =
@@ -110,13 +111,15 @@ init flags =
             , csrfToken = flags.csrfToken
             , currentPage = flags.paging
             , hovered = None
+            , topBar = topBar
             }
     in
     ( model
-    , [ FetchJob jobId
-      , FetchJobBuilds jobId flags.paging
+    , [ FetchJob flags.jobId
+      , FetchJobBuilds flags.jobId flags.paging
       , GetCurrentTime
       ]
+        ++ topBarEffects
     )
 
 
@@ -147,7 +150,21 @@ getUpdateMessage model =
 
 
 handleCallback : Callback -> Model -> ( Model, List Effect )
-handleCallback callback model =
+handleCallback msg model =
+    let
+        ( newTopBar, topBarEffects ) =
+            TopBar.handleCallback msg model.topBar
+
+        ( newModel, jobsEffects ) =
+            handleCallbackWithoutTopBar msg model
+    in
+    ( { newModel | topBar = newTopBar }
+    , topBarEffects ++ jobsEffects
+    )
+
+
+handleCallbackWithoutTopBar : Callback -> Model -> ( Model, List Effect )
+handleCallbackWithoutTopBar callback model =
     case callback of
         BuildTriggered (Ok build) ->
             ( model
@@ -158,11 +175,15 @@ handleCallback callback model =
                 Just job ->
                     [ NavigateTo <|
                         Routes.toString <|
-                            Routes.Build job.teamName
-                                job.pipelineName
-                                job.jobName
-                                build.name
-                                Routes.HighlightNothing
+                            Routes.Build
+                                { id =
+                                    { teamName = job.teamName
+                                    , pipelineName = job.pipelineName
+                                    , jobName = job.jobName
+                                    , buildName = build.name
+                                    }
+                                , highlight = Routes.HighlightNothing
+                                }
                     ]
             )
 
@@ -228,9 +249,6 @@ handleCallback callback model =
 update : Msg -> Model -> ( Model, List Effect )
 update action model =
     case action of
-        Noop ->
-            ( model, [] )
-
         TriggerBuild ->
             ( model, [ DoTriggerBuild model.jobIdentifier model.csrfToken ] )
 
@@ -267,6 +285,13 @@ update action model =
 
         ClockTick now ->
             ( { model | now = now }, [] )
+
+        FromTopBar m ->
+            let
+                ( newTopBar, topBarEffects ) =
+                    TopBar.update m model.topBar
+            in
+            ( { model | topBar = newTopBar }, topBarEffects )
 
 
 redirectToLoginIfNecessary : Http.Error -> List Effect
@@ -374,8 +399,25 @@ isRunning build =
     Concourse.BuildStatus.isRunning build.status
 
 
-view : Model -> Html Msg
-view model =
+view : UserState -> Model -> Html Msg
+view userState model =
+    Html.div []
+        [ Html.div
+            [ style TopBar.Styles.pageIncludingTopBar
+            , id "page-including-top-bar"
+            ]
+            [ TopBar.view userState TopBar.Model.None model.topBar
+                |> HS.toUnstyled
+                |> Html.map FromTopBar
+            , Html.div
+                [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
+                [ viewMainJobsSection model ]
+            ]
+        ]
+
+
+viewMainJobsSection : Model -> Html Msg
+viewMainJobsSection model =
     Html.div [ class "with-fixed-header" ]
         [ case model.job |> RemoteData.toMaybe of
             Nothing ->
@@ -536,10 +578,7 @@ viewPaginationBar model =
             Just page ->
                 let
                     jobRoute =
-                        Routes.Job model.jobIdentifier.teamName
-                            model.jobIdentifier.pipelineName
-                            model.jobIdentifier.jobName
-                            (Just page)
+                        Routes.Job { id = model.jobIdentifier, page = Just page }
                 in
                 Html.div
                     [ style chevronContainer
@@ -577,10 +616,7 @@ viewPaginationBar model =
             Just page ->
                 let
                     jobRoute =
-                        Routes.Job model.jobIdentifier.teamName
-                            model.jobIdentifier.pipelineName
-                            model.jobIdentifier.jobName
-                            (Just page)
+                        Routes.Job { id = model.jobIdentifier, page = Just page }
                 in
                 Html.div
                     [ style chevronContainer

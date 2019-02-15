@@ -1,16 +1,17 @@
 module PipelineTests exposing (all)
 
+import Application.Application as Application
+import Application.Msgs as Msgs
 import Callback
 import Char
 import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
-import Layout
-import Msgs
-import Pipeline exposing (update)
 import Pipeline.Msgs exposing (Msg(..))
+import Pipeline.Pipeline as Pipeline exposing (update)
 import Routes
+import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -36,7 +37,7 @@ all =
     describe "Pipeline"
         [ test "view respects selected groups in URL" <|
             \_ ->
-                Layout.init
+                Application.init
                     { turbulenceImgSrc = ""
                     , notFoundImgSrc = ""
                     , csrfToken = ""
@@ -56,7 +57,7 @@ all =
                     , password = ""
                     }
                     |> Tuple.first
-                    |> Layout.handleCallback
+                    |> Application.handleCallback
                         (Effects.SubPage 1)
                         (Callback.PipelineFetched
                             (Ok
@@ -79,7 +80,7 @@ all =
                             )
                         )
                     |> Tuple.first
-                    |> Layout.view
+                    |> Application.view
                     |> Query.fromHtml
                     |> Query.find [ class "groups-bar" ]
                     |> Query.find
@@ -90,8 +91,10 @@ all =
                 defaultModel : Pipeline.Model
                 defaultModel =
                     Pipeline.init
-                        { teamName = "some-team"
-                        , pipelineName = "some-pipeline"
+                        { pipelineLocator =
+                            { teamName = "some-team"
+                            , pipelineName = "some-pipeline"
+                            }
                         , turbulenceImgSrc = "some-turbulence-img-src"
                         , selectedGroups = []
                         }
@@ -100,7 +103,7 @@ all =
             [ test "CLI icons at bottom right" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Layout.view
+                        |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ class "cli-downloads" ]
                         |> Query.children []
@@ -154,7 +157,7 @@ all =
             , test "ShowLegend" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Layout.view
+                        |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ class "legend" ]
                         |> Query.children []
@@ -194,43 +197,31 @@ all =
             , rspecStyleDescribe "when on pipeline page"
                 (init "/teams/team/pipelines/pipeline")
                 [ it "shows a pin icon on top bar" <|
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.has [ id "pin-icon" ]
-                , it "top bar is 56px tall with dark grey background" <|
-                    Layout.view
+                , it "top bar has a dark grey background" <|
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
-                        >> Query.has [ style [ ( "background-color", "#1e1d1d" ), ( "height", "56px" ) ] ]
+                        >> Query.has [ style [ ( "background-color", "#1e1d1d" ) ] ]
                 , it "top bar lays out contents horizontally" <|
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.has [ style [ ( "display", "flex" ) ] ]
-                , it "top bar centers contents vertically" <|
-                    Layout.view
-                        >> Query.fromHtml
-                        >> Query.find [ id "top-bar-app" ]
-                        >> Query.has [ style [ ( "align-items", "center" ) ] ]
                 , it "top bar maximizes spacing between the left and right navs" <|
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.has [ style [ ( "justify-content", "space-between" ) ] ]
-                , it "both navs are laid out horizontally" <|
-                    Layout.view
-                        >> Query.fromHtml
-                        >> Query.find [ id "top-bar-app" ]
-                        >> Query.children []
-                        >> Query.each
-                            (Query.has [ style [ ( "display", "flex" ) ] ])
                 , it "top bar has a square concourse logo on the left" <|
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.children []
-                        >> Query.first
+                        >> Query.index 1
                         >> Query.has
                             [ style
                                 [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" )
@@ -242,20 +233,20 @@ all =
                                 ]
                             ]
                 , it "concourse logo on the left is a link to homepage" <|
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.children []
-                        >> Query.first
+                        >> Query.index 1
                         >> Query.has [ tag "a", attribute <| Attr.href "/" ]
                 , it "pin icon has a pin background" <|
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
-                        >> Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-grey.svg)" ) ] ]
+                        >> Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
                 , it "mousing over pin icon does nothing if there are no pinned resources" <|
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -265,19 +256,19 @@ all =
                         >> Event.toResult
                         >> Expect.err
                 , it "there is some space between the pin icon and the user menu" <|
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.has [ style [ ( "margin-right", "15px" ) ] ]
                 , it "pin icon has relative positioning" <|
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.has [ style [ ( "position", "relative" ) ] ]
                 , it "pin icon does not have circular background" <|
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.findAll
                             [ id "pin-icon"
@@ -288,21 +279,21 @@ all =
                         >> Query.count (Expect.equal 0)
                 , it "pin icon has white color when pipeline has pinned resources" <|
                     givenPinnedResource
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
                 , it "pin icon has pin badge when pipeline has pinned resources" <|
                     givenPinnedResource
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.has pinBadgeSelector
                 , it "pin badge is purple" <|
                     givenPinnedResource
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -311,7 +302,7 @@ all =
                             [ style [ ( "background-color", "#5C3BD1" ) ] ]
                 , it "pin badge is circular" <|
                     givenPinnedResource
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -325,7 +316,7 @@ all =
                             ]
                 , it "pin badge is near the top right of the pin icon" <|
                     givenPinnedResource
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -339,7 +330,7 @@ all =
                             ]
                 , it "content inside pin badge is centered horizontally and vertically" <|
                     givenPinnedResource
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -353,7 +344,7 @@ all =
                             ]
                 , it "pin badge shows count of pinned resources, centered" <|
                     givenPinnedResource
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -362,7 +353,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "pin badge has no other children" <|
                     givenPinnedResource
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -371,7 +362,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "pin counter works with multiple pinned resources" <|
                     givenMultiplePinnedResources
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -380,51 +371,48 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "before TogglePinIconDropdown msg no list of pinned resources is visible" <|
                     givenPinnedResource
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.hasNot [ tag "ul" ]
                 , it "mousing over pin icon sends TogglePinIconDropdown msg" <|
                     givenPinnedResource
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.children []
                         >> Query.first
                         >> Event.simulate Event.mouseEnter
-                        >> Event.expect (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Event.expect (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                 , it "TogglePinIconDropdown msg causes pin icon to have light grey circular background" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "pin-icon" ]
                         >> Query.has
                             [ style
-                                [ ( "background-color", "#3d3c3c" )
+                                [ ( "background-color", "rgba(255, 255, 255, 0.3)" )
                                 , ( "border-radius", "50%" )
                                 ]
                             ]
                 , it "TogglePinIconDropdown msg causes dropdown list of pinned resources to appear" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "pin-icon" ]
                         >> Query.children [ tag "ul" ]
                         >> Query.count (Expect.equal 1)
                 , it "on TogglePinIconDropdown, pin badge has no other children" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -433,10 +421,9 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources contains resource name" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -444,10 +431,9 @@ all =
                         >> Query.has [ tag "li", containing [ text "resource" ] ]
                 , it "dropdown list of pinned resources shows resource names in bold" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -457,10 +443,9 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources shows pinned version of each resource" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -469,10 +454,9 @@ all =
                         >> Query.has [ tag "table", containing [ text "v1" ] ]
                 , it "dropdown list of pinned resources has white background" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -480,10 +464,9 @@ all =
                         >> Query.has [ style [ ( "background-color", "#fff" ) ] ]
                 , it "dropdown list of pinned resources is drawn over other elements on the page" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -491,10 +474,9 @@ all =
                         >> Query.has [ style [ ( "z-index", "1" ) ] ]
                 , it "dropdown list of pinned resources has dark grey text" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -502,10 +484,9 @@ all =
                         >> Query.has [ style [ ( "color", "#1e1d1d" ) ] ]
                 , it "dropdown list has upward-pointing arrow" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -519,10 +500,9 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources is offset below and left of the pin icon" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -537,10 +517,9 @@ all =
                             ]
                 , it "dropdown list of pinned resources stretches horizontally to fit content" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -551,10 +530,9 @@ all =
                             ]
                 , it "dropdown list of pinned resources has no bullet points" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -565,10 +543,9 @@ all =
                             ]
                 , it "dropdown list has comfortable padding" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -579,10 +556,9 @@ all =
                             ]
                 , it "dropdown list arrow is centered below the pin icon above the list" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
@@ -605,45 +581,51 @@ all =
                             ]
                 , it "mousing off the pin icon sends TogglePinIconDropdown msg" <|
                     givenPinnedResource
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.children []
                         >> Query.first
                         >> Event.simulate Event.mouseLeave
-                        >> Event.expect (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Event.expect (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                 , it "clicking a pinned resource sends a Navigation Msg" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "li" ]
                         >> Event.simulate Event.click
                         >> Event.expect
-                            (Msgs.TopMsg 1 (TopBar.Msgs.GoToPinnedResource (Routes.Resource "team" "pipeline" "resource" Nothing)))
+                            (wrapTopBarMessage <|
+                                TopBar.Msgs.GoToPinnedResource <|
+                                    Routes.Resource
+                                        { id =
+                                            { teamName = "team"
+                                            , pipelineName = "pipeline"
+                                            , resourceName = "resource"
+                                            }
+                                        , page = Nothing
+                                        }
+                            )
                 , it "TogglePinIconDropdown msg causes dropdown list of pinned resources to disappear" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.hasNot [ tag "ul" ]
                 , it "pinned resources in the dropdown should have a pointer cursor" <|
                     givenPinnedResource
-                        >> Layout.update
-                            (Msgs.TopMsg 1 TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "ul" ]
@@ -657,47 +639,46 @@ all =
             , test "top bar lays out contents horizontally" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Layout.view
+                        |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has [ style [ ( "display", "inline-block" ) ] ]
-            , test "top bar centers contents vertically" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.has [ style [ ( "align-items", "center" ) ] ]
             , test "top bar maximizes spacing between the left and right navs" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Layout.view
+                        |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.has [ style [ ( "justify-content", "space-between" ), ( "left", "0" ), ( "right", "0" ) ] ]
+                        |> Query.has [ style [ ( "justify-content", "space-between" ), ( "width", "100%" ) ] ]
             , test "top bar is sticky" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Layout.view
+                        |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.has [ style [ ( "z-index", "100" ), ( "position", "fixed" ) ] ]
+                        |> Query.has [ style [ ( "z-index", "999" ), ( "position", "fixed" ) ] ]
             , test "breadcrumb items are laid out horizontally" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Layout.view
+                        |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.find [ tag "ul" ]
+                        |> Query.find [ id "breadcrumbs" ]
                         |> Query.children []
                         |> Query.each
                             (Query.has [ style [ ( "display", "inline-block" ) ] ])
+            , describe "top bar positioning"
+                [ testTopBarPositioning "Dashboard" "/"
+                , testTopBarPositioning "Pipeline" "/teams/team/pipelines/pipeline"
+                , testTopBarPositioning "Job" "/teams/team/pipelines/pipeline/jobs/job"
+                , testTopBarPositioning "Build" "/teams/team/pipelines/pipeline/jobs/job/builds/build"
+                , testTopBarPositioning "Resource" "/teams/team/pipelines/pipeline/resources/resource"
+                , testTopBarPositioning "FlySuccess" "/fly_success"
+                ]
             , rspecStyleDescribe "when on job page"
                 (init "/teams/team/pipeline/pipeline/jobs/job/builds/1")
                 [ it "shows no pin icon on top bar when viewing build page" <|
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.hasNot [ id "pin-icon" ]
@@ -705,8 +686,8 @@ all =
             , test "top nav bar is blue when pipeline is paused" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Layout.handleCallback
-                            (Effects.TopBar 1)
+                        |> Application.handleCallback
+                            (Effects.SubPage 1)
                             (Callback.PipelineFetched
                                 (Ok
                                     { id = 0
@@ -719,7 +700,7 @@ all =
                                 )
                             )
                         |> Tuple.first
-                        |> Layout.view
+                        |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has
@@ -729,16 +710,15 @@ all =
             , test "breadcrumb list is laid out horizontally" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Layout.view
+                        |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "ul" ]
-                        |> Query.first
+                        |> Query.find [ id "breadcrumbs" ]
                         |> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
             , test "pipeline breadcrumb is laid out horizontally" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Layout.view
+                        |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
@@ -746,7 +726,7 @@ all =
             , test "top bar has pipeline breadcrumb with icon rendered first" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Layout.view
+                        |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
@@ -756,7 +736,7 @@ all =
             , test "top bar has pipeline name after pipeline icon" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Layout.view
+                        |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
@@ -767,137 +747,97 @@ all =
             , test "pipeline breadcrumb should have a link to the pipeline page" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Layout.view
+                        |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.find [ tag "ul" ]
+                        |> Query.find [ id "breadcrumbs" ]
                         |> Query.children []
                         |> Query.first
                         |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
-            , test "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
-            , test "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/resources/resource"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
-            , test "there should be a / between pipeline and job in breadcrumb" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has [ text "/" ]
-            , test "job breadcrumb is laid out horizontally with appropriate spacing" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.find [ tag "ul" ]
-                        |> Query.children []
-                        |> Query.index 2
-                        |> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
-            , test "top bar has job breadcrumb with job icon rendered first" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.find [ tag "ul" ]
-                        |> Query.children []
-                        |> Query.index 2
-                        |> Query.has jobBreadcrumbSelector
-            , test "top bar has build name after job icon" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.find [ tag "ul" ]
-                        |> Query.children []
-                        |> Query.index 2
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has
-                            [ text "job" ]
-            , test "there should be a / between pipeline and resource in breadcrumb" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/resources/resource"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has [ text "/" ]
-            , test "resource breadcrumb is laid out horizontally with appropriate spacing" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/resources/resource"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.find [ tag "ul" ]
-                        |> Query.children []
-                        |> Query.index 2
-                        |> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
-            , test "top bar has resource breadcrumb with resource icon rendered first" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/resources/resource"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.find [ tag "ul" ]
-                        |> Query.children []
-                        |> Query.index 2
-                        |> Query.has resourceBreadcrumbSelector
-            , test "top bar has resource name after resource icon" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline/resources/resource"
-                        |> Layout.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.findAll [ tag "nav" ]
-                        |> Query.first
-                        |> Query.find [ tag "ul" ]
-                        |> Query.children []
-                        |> Query.index 2
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has
-                            [ text "resource" ]
+            , describe "build page"
+                [ test "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "breadcrumbs" ]
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                , test "there should be a / between pipeline and job in breadcrumb" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "breadcrumbs" ]
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has [ text "/" ]
+                , test "top bar has job breadcrumb with job icon rendered first" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "breadcrumbs" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.has jobBreadcrumbSelector
+                , test "top bar has build name after job icon" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "breadcrumbs" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.has [ text "job" ]
+                ]
+            , describe "resource page"
+                [ test "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/resources/resource"
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "breadcrumbs" ]
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+                , test "there should be a / between pipeline and resource in breadcrumb" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/resources/resource"
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "breadcrumbs" ]
+                            |> Query.children []
+                            |> Query.index 1
+                            |> Query.has [ text "/" ]
+                , test "top bar has resource breadcrumb with resource icon rendered first" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/resources/resource"
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "breadcrumbs" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.has resourceBreadcrumbSelector
+                , test "top bar has resource name after resource icon" <|
+                    \_ ->
+                        init "/teams/team/pipelines/pipeline/resources/resource"
+                            |> Application.view
+                            |> Query.fromHtml
+                            |> Query.find [ id "top-bar-app" ]
+                            |> Query.find [ id "breadcrumbs" ]
+                            |> Query.children []
+                            |> Query.index 2
+                            |> Query.has [ text "resource" ]
+                ]
             ]
         ]
 
@@ -934,9 +874,9 @@ resourceBreadcrumbSelector =
     ]
 
 
-init : String -> Layout.Model
+init : String -> Application.Model
 init path =
-    Layout.init
+    Application.init
         { turbulenceImgSrc = ""
         , notFoundImgSrc = ""
         , csrfToken = ""
@@ -958,9 +898,9 @@ init path =
         |> Tuple.first
 
 
-givenPinnedResource : Layout.Model -> Layout.Model
+givenPinnedResource : Application.Model -> Application.Model
 givenPinnedResource =
-    Layout.handleCallback
+    Application.handleCallback
         (Effects.SubPage -1)
         (Callback.ResourcesFetched <|
             Ok <|
@@ -976,9 +916,9 @@ givenPinnedResource =
         >> Tuple.first
 
 
-givenMultiplePinnedResources : Layout.Model -> Layout.Model
+givenMultiplePinnedResources : Application.Model -> Application.Model
 givenMultiplePinnedResources =
-    Layout.handleCallback
+    Application.handleCallback
         (Effects.SubPage -1)
         (Callback.ResourcesFetched <|
             Ok <|
@@ -998,3 +938,40 @@ givenMultiplePinnedResources =
                     ]
         )
         >> Tuple.first
+
+
+wrapTopBarMessage : TopBar.Msgs.Msg -> Msgs.Msg
+wrapTopBarMessage =
+    Pipeline.Msgs.FromTopBar >> SubPage.Msgs.PipelineMsg >> Msgs.SubMsg 1
+
+
+testTopBarPositioning : String -> String -> Test
+testTopBarPositioning pageName url =
+    describe pageName
+        [ test "whole page fills the whole screen" <|
+            \_ ->
+                init url
+                    |> Application.view
+                    |> Query.fromHtml
+                    |> Query.find [ id "page-including-top-bar" ]
+                    |> Query.has [ style [ ( "height", "100%" ) ] ]
+        , test "lower section fills the whole screen as well" <|
+            \_ ->
+                init url
+                    |> Application.view
+                    |> Query.fromHtml
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has
+                        [ style
+                            -- this padding ugliness is necessary because pipeline's page is weird and not offset
+                            [ ( "padding-top"
+                              , if pageName == "Pipeline" || pageName == "Build" then
+                                    "0"
+
+                                else
+                                    "54px"
+                              )
+                            , ( "height", "100%" )
+                            ]
+                        ]
+        ]

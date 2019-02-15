@@ -1,5 +1,6 @@
 module Build.Models exposing
     ( BuildEvent(..)
+    , BuildPageType(..)
     , HookedStep
     , Hoverable(..)
     , MetadataField
@@ -7,7 +8,6 @@ module Build.Models exposing
     , Origin
     , OutputModel
     , OutputState(..)
-    , Page(..)
     , Step
     , StepFocus
     , StepHeaderType(..)
@@ -27,6 +27,7 @@ import Dict exposing (Dict)
 import RemoteData exposing (WebData)
 import Routes exposing (Highlight, StepID)
 import Time exposing (Time)
+import TopBar.Model
 
 
 
@@ -34,7 +35,7 @@ import Time exposing (Time)
 
 
 type alias Model =
-    { page : Page
+    { page : BuildPageType
     , now : Maybe Time
     , job : Maybe Concourse.Job
     , history : List Concourse.Build
@@ -48,6 +49,7 @@ type alias Model =
     , highlight : Highlight
     , hoveredElement : Maybe Hoverable
     , hoveredCounter : Int
+    , topBar : TopBar.Model.Model
     }
 
 
@@ -58,8 +60,8 @@ type alias CurrentBuild =
     }
 
 
-type Page
-    = BuildPage Int
+type BuildPageType
+    = OneOffBuildPage Concourse.BuildId
     | JobBuildPage Concourse.JobBuildIdentifier
 
 

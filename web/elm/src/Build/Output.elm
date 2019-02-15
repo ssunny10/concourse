@@ -3,6 +3,7 @@ module Build.Output exposing
     , handleEventsMsg
     , handleStepTreeMsg
     , init
+    , parseMsg
     , planAndResourcesFetched
     , subscribeToEvents
     , view
@@ -28,7 +29,7 @@ import Concourse.BuildStatus
 import Date exposing (Date)
 import Dict
 import Effects exposing (Effect(..))
-import EventSource
+import EventSource.EventSource as EventSource
 import Html exposing (Html)
 import Html.Attributes
     exposing

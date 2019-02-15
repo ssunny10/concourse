@@ -1,12 +1,16 @@
 module SubPageTests exposing (all)
 
+import Application.Application as Application
 import Callback exposing (Callback(..))
 import Dict exposing (Dict)
 import Effects
 import Expect
 import Http
-import Layout
-import SubPage exposing (..)
+import TopBar.Model
+import RemoteData
+import Routes
+import ScreenSize
+import SubPage.SubPage exposing (..)
 import Test exposing (..)
 
 
@@ -26,9 +30,9 @@ all =
     describe "SubPage"
         [ describe "not found" <|
             let
-                init : String -> () -> Layout.Model
+                init : String -> () -> Application.Model
                 init path _ =
-                    Layout.init
+                    Application.init
                         { turbulenceImgSrc = ""
                         , notFoundImgSrc = "notfound.svg"
                         , csrfToken = ""
@@ -51,39 +55,101 @@ all =
             in
             [ test "JobNotFound" <|
                 init "/teams/t/pipelines/p/jobs/j"
-                    >> Layout.handleCallback
+                    >> Application.handleCallback
                         (Effects.SubPage 1)
                         (JobFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
-                        (NotFoundModel { notFoundImgSrc = "notfound.svg" })
+                        (NotFoundModel
+                            { notFoundImgSrc = "notfound.svg"
+                            , topBar =
+                                topBar
+                                    (Routes.Job
+                                        { id =
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , jobName = "j"
+                                            }
+                                        , page = Nothing
+                                        }
+                                    )
+                            }
+                        )
             , test "Resource not found" <|
                 init "/teams/t/pipelines/p/resources/r"
-                    >> Layout.handleCallback
+                    >> Application.handleCallback
                         (Effects.SubPage 1)
                         (ResourceFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
-                        (NotFoundModel { notFoundImgSrc = "notfound.svg" })
+                        (NotFoundModel
+                            { notFoundImgSrc = "notfound.svg"
+                            , topBar =
+                                topBar
+                                    (Routes.Resource
+                                        { id =
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , resourceName = "r"
+                                            }
+                                        , page = Nothing
+                                        }
+                                    )
+                            }
+                        )
             , test "Build not found" <|
                 init "/builds/1"
-                    >> Layout.handleCallback
+                    >> Application.handleCallback
                         (Effects.SubPage 0)
                         (BuildFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
-                        (NotFoundModel { notFoundImgSrc = "notfound.svg" })
+                        (NotFoundModel
+                            { notFoundImgSrc = "notfound.svg"
+                            , topBar =
+                                topBar
+                                    (Routes.OneOffBuild
+                                        { id = 1
+                                        , highlight = Routes.HighlightNothing
+                                        }
+                                    )
+                            }
+                        )
             , test "Pipeline not found" <|
                 init "/teams/t/pipelines/p"
-                    >> Layout.handleCallback
+                    >> Application.handleCallback
                         (Effects.SubPage 1)
                         (PipelineFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
-                        (NotFoundModel { notFoundImgSrc = "notfound.svg" })
+                        (NotFoundModel
+                            { notFoundImgSrc = "notfound.svg"
+                            , topBar =
+                                topBar
+                                    (Routes.Pipeline
+                                        { id =
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            }
+                                        , groups = []
+                                        }
+                                    )
+                            }
+                        )
             ]
         ]
+
+
+topBar : Routes.Route -> TopBar.Model.Model
+topBar route =
+    { isUserMenuExpanded = False
+    , middleSection = TopBar.Model.Breadcrumbs route
+    , teams = RemoteData.Loading
+    , screenSize = ScreenSize.Desktop
+    , highDensity = False
+    , isPinMenuExpanded = False
+    }
