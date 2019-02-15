@@ -3,7 +3,7 @@ module Dashboard.Group.Tag exposing (Tag(..), ordering, splitFirst, tag, view)
 import Concourse
 import Dict
 import Html exposing (Html)
-import Html.Attributes exposing (class, style)
+import Html.Attributes exposing (style)
 import List.Extra
 import Ordering exposing (Ordering)
 
@@ -69,22 +69,9 @@ splitFirst delim =
 
 tag : Concourse.User -> String -> Maybe Tag
 tag user teamName =
-    case Dict.get teamName user.teams of
-        Just roles ->
-            firstRole roles
-
-        Nothing ->
-            Nothing
-
-
-firstRole : List String -> Maybe Tag
-firstRole roles =
-    case List.head roles of
-        Just roles ->
-            parseRole roles
-
-        Nothing ->
-            Nothing
+    Dict.get teamName user.teams
+        |> Maybe.andThen List.head
+        |> Maybe.andThen parseRole
 
 
 parseRole : String -> Maybe Tag

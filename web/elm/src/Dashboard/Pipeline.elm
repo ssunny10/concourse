@@ -10,9 +10,17 @@ import Dashboard.Models exposing (Pipeline)
 import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
 import Duration
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (on, onMouseEnter, onMouseLeave)
+import Html exposing (Html)
+import Html.Attributes
+    exposing
+        ( attribute
+        , class
+        , classList
+        , draggable
+        , href
+        , style
+        )
+import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Routes
 import StrictEvents exposing (onLeftClick)
 import Time exposing (Time)

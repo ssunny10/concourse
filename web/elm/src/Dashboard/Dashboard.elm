@@ -9,11 +9,8 @@ module Dashboard.Dashboard exposing
 
 import Callback exposing (Callback(..))
 import Char
-import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
-import Concourse.User
-import Dashboard.APIData as APIData
 import Dashboard.Details as Details
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
@@ -29,27 +26,23 @@ import Html.Styled.Attributes
         ( attribute
         , class
         , classList
-        , css
-        , draggable
         , href
         , id
         , src
         , style
         )
 import Html.Styled.Events exposing (onMouseEnter, onMouseLeave)
-import Http
-import Monocle.Common exposing ((<|>), (=>))
+import Monocle.Common exposing ((=>))
 import Monocle.Lens
 import Monocle.Optional
-import MonocleHelpers exposing (..)
+import MonocleHelpers exposing ((<|=), (=|>), (>>=), modifyWithEffect)
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
 import Routes
 import ScreenSize
-import Simple.Fuzzy exposing (filter, match, root)
+import Simple.Fuzzy
 import Subscription exposing (Subscription(..))
-import Task
-import Time exposing (Time)
+import Time
 import TopBar.Model
 import TopBar.Msgs
 import TopBar.Styles
@@ -211,10 +204,6 @@ handleCallbackWithoutTopBar msg model =
               ]
             )
 
-        LoggedOut (Err err) ->
-            flip always (Debug.log "failed to log out" err) <|
-                ( model, [] )
-
         ScreenResized size ->
             let
                 newSize =
@@ -275,7 +264,7 @@ updateWithoutTopBar msg model =
             in
             ( newModel, [] )
 
-        DragOver teamName index ->
+        DragOver _ index ->
             let
                 newModel =
                     { model | state = RemoteData.map (\s -> { s | dropState = Group.Dropping index }) model.state }
@@ -346,10 +335,10 @@ updateWithoutTopBar msg model =
                 |> modifyWithEffect bigOptional
                     (\( t, g ) ->
                         let
-                            ( newG, msg ) =
+                            ( newG, m ) =
                                 updatePipelines t g
                         in
-                        ( ( t, newG ), msg )
+                        ( ( t, newG ), m )
                     )
                 |> Tuple.mapFirst (dragDropOptional.set ( Group.NotDragging, Group.NotDropping ))
 
@@ -371,20 +360,21 @@ updateWithoutTopBar msg model =
         FromTopBar TopBar.Msgs.ToggleUserMenu ->
             ( { model | userMenuVisible = not model.userMenuVisible }, [] )
 
-        FromTopBar m ->
+        FromTopBar _ ->
             ( model, [] )
 
 
 subscriptions : Model -> List (Subscription Msg)
-subscriptions model =
-    [ OnClockTick Time.second ClockTick
-    , OnClockTick (5 * Time.second) AutoRefresh
-    , OnMouseMove ShowFooter
-    , OnMouseClick ShowFooter
-    , OnKeyPress KeyPressed
-    , OnKeyDown
-    , OnWindowResize Msgs.ResizeScreen
-    ]
+subscriptions =
+    always
+        [ OnClockTick Time.second ClockTick
+        , OnClockTick (5 * Time.second) AutoRefresh
+        , OnMouseMove ShowFooter
+        , OnMouseClick ShowFooter
+        , OnKeyPress KeyPressed
+        , OnKeyDown
+        , OnWindowResize Msgs.ResizeScreen
+        ]
 
 
 view : UserState -> Model -> Html Msg
@@ -415,10 +405,9 @@ dashboardView model =
                     [ turbulenceView path ]
 
                 RemoteData.Success substate ->
-                    [ Html.div
+                    Html.div
                         [ class "dashboard-content" ]
-                      <|
-                        welcomeCard model
+                        (welcomeCard model
                             ++ pipelinesView
                                 { groups = model.groups
                                 , substate = substate
@@ -426,11 +415,10 @@ dashboardView model =
                                 , hoveredPipeline = model.hoveredPipeline
                                 , pipelineRunningKeyframes =
                                     model.pipelineRunningKeyframes
-                                , userState = model.userState
                                 , highDensity = model.highDensity
                                 }
-                    ]
-                        ++ (List.map Html.fromUnstyled <| Footer.view model)
+                        )
+                        :: (List.map Html.fromUnstyled <| Footer.view model)
     in
     Html.div
         [ classList
@@ -453,8 +441,8 @@ welcomeCard { hoveredTopCliIcon, groups, userState } =
         noPipelines =
             List.isEmpty (groups |> List.concatMap .pipelines)
 
-        cliIcon : Maybe Cli.Cli -> Cli.Cli -> Html Msg
-        cliIcon hoveredTopCliIcon cli =
+        cliIcon : Cli.Cli -> Html Msg
+        cliIcon cli =
             Html.a
                 [ href (Cli.downloadUrl cli)
                 , attribute "aria-label" <| Cli.label cli
@@ -491,7 +479,7 @@ welcomeCard { hoveredTopCliIcon, groups, userState } =
                         [ style [ ( "margin-right", "10px" ) ] ]
                         [ Html.text Text.cliInstructions ]
                     ]
-                        ++ List.map (cliIcon hoveredTopCliIcon) Cli.clis
+                        ++ List.map cliIcon Cli.clis
                 , Html.div
                     []
                     [ Html.text Text.setPipelineInstructions ]
@@ -549,39 +537,6 @@ noResultsView query =
         ]
 
 
-helpView : { a | showHelp : Bool } -> Html Msg
-helpView { showHelp } =
-    Html.div
-        [ classList
-            [ ( "keyboard-help", True )
-            , ( "hidden", not showHelp )
-            ]
-        ]
-        [ Html.div
-            [ class "help-title" ]
-            [ Html.text "keyboard shortcuts" ]
-        , Html.div
-            [ class "help-line" ]
-            [ Html.div
-                [ class "keys" ]
-                [ Html.span
-                    [ class "key" ]
-                    [ Html.text "/" ]
-                ]
-            , Html.text "search"
-            ]
-        , Html.div [ class "help-line" ]
-            [ Html.div
-                [ class "keys" ]
-                [ Html.span
-                    [ class "key" ]
-                    [ Html.text "?" ]
-                ]
-            , Html.text "hide/show help"
-            ]
-        ]
-
-
 turbulenceView : String -> Html Msg
 turbulenceView path =
     Html.div
@@ -600,11 +555,10 @@ pipelinesView :
     , hoveredPipeline : Maybe Models.Pipeline
     , pipelineRunningKeyframes : String
     , query : String
-    , userState : UserState.UserState
     , highDensity : Bool
     }
     -> List (Html Msg)
-pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, query, userState, highDensity } =
+pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, query, highDensity } =
     let
         filteredGroups =
             groups |> filter query |> List.sortWith Group.ordering
@@ -651,13 +605,6 @@ handleKeyPressed key model =
 
         _ ->
             ( Footer.showFooter model, [] )
-
-
-remoteUser : APIData.APIData -> Task.Task Http.Error ( APIData.APIData, Maybe Concourse.User )
-remoteUser d =
-    Concourse.User.fetchUser
-        |> Task.map ((,) d << Just)
-        |> Task.onError (always <| Task.succeed <| ( d, Nothing ))
 
 
 filterTerms : String -> List String

@@ -44,7 +44,7 @@ remoteData =
                                                                 Concourse.User.fetchUser
                                                                     |> Task.map Just
                                                                     |> Task.onError
-                                                                        (\err -> Task.succeed Nothing)
+                                                                        (\_ -> Task.succeed Nothing)
                                                                     |> Task.andThen
                                                                         (\user ->
                                                                             Task.succeed

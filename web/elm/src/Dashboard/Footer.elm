@@ -135,13 +135,12 @@ legend model =
                 [ PipelineStatusPending False
                 , PipelineStatusPaused
                 ]
-                ++ [ Html.div [ style Styles.legendItem ]
-                        [ Html.div [ style Styles.runningLegendItem ] []
-                        , Html.div [ style [ ( "width", "10px" ) ] ] []
-                        , Html.text "running"
-                        ]
-                   ]
-                ++ List.map legendItem
+                ++ Html.div [ style Styles.legendItem ]
+                    [ Html.div [ style Styles.runningLegendItem ] []
+                    , Html.div [ style [ ( "width", "10px" ) ] ] []
+                    , Html.text "running"
+                    ]
+                :: List.map legendItem
                     [ PipelineStatusFailed PipelineStatus.Running
                     , PipelineStatusErrored PipelineStatus.Running
                     , PipelineStatusAborted PipelineStatus.Running

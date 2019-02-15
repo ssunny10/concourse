@@ -83,7 +83,7 @@ pipelineCardBanner { status, pipelineRunningKeyframes } =
         isRunning =
             Concourse.PipelineStatus.isRunning status
     in
-    [ ( "height", "7px" ) ] ++ texture pipelineRunningKeyframes isRunning color
+    ( "height", "7px" ) :: texture pipelineRunningKeyframes isRunning color
 
 
 noPipelineCardHd : List ( String, String )
@@ -219,8 +219,7 @@ pipelineCardBannerHd { status, pipelineRunningKeyframes } =
         isRunning =
             Concourse.PipelineStatus.isRunning status
     in
-    [ ( "width", "8px" ) ]
-        ++ texture pipelineRunningKeyframes isRunning color
+    ( "width", "8px" ) :: texture pipelineRunningKeyframes isRunning color
 
 
 solid : String -> List ( String, String )

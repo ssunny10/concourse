@@ -32,8 +32,8 @@ view jobs =
         ]
     <|
         List.map
-            (\jobs ->
-                List.map viewJob jobs
+            (\js ->
+                List.map viewJob js
                     |> Html.div [ class "parallel-grid" ]
             )
             (Dict.values groups)
@@ -51,7 +51,7 @@ viewJob job =
                     "no-builds"
 
         isJobRunning =
-            (/=) job.nextBuild Nothing
+            job.nextBuild /= Nothing
 
         latestBuild =
             if job.nextBuild == Nothing then

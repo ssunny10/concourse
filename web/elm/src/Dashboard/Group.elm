@@ -40,10 +40,18 @@ import Dashboard.Models as Models
 import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
-import Date exposing (Date)
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (on, onMouseEnter)
+import Date
+import Html exposing (Html)
+import Html.Attributes
+    exposing
+        ( attribute
+        , class
+        , classList
+        , draggable
+        , id
+        , style
+        )
+import Html.Events exposing (on)
 import Json.Decode
 import List.Extra
 import Maybe.Extra
@@ -127,8 +135,8 @@ dropIndexOptional =
 teamName : DragState -> Maybe Concourse.TeamName
 teamName dragState =
     case dragState of
-        Dragging teamName _ ->
-            Just teamName
+        Dragging name _ ->
+            Just name
 
         NotDragging ->
             Nothing
@@ -137,8 +145,8 @@ teamName dragState =
 setTeamName : Concourse.TeamName -> DragState -> DragState
 setTeamName teamName dragState =
     case dragState of
-        Dragging _ dragIndex ->
-            Dragging teamName dragIndex
+        Dragging _ idx ->
+            Dragging teamName idx
 
         NotDragging ->
             NotDragging
@@ -147,8 +155,8 @@ setTeamName teamName dragState =
 dragIndex : DragState -> Maybe PipelineIndex
 dragIndex dragState =
     case dragState of
-        Dragging _ dragIndex ->
-            Just dragIndex
+        Dragging _ idx ->
+            Just idx
 
         NotDragging ->
             Nothing
@@ -172,8 +180,8 @@ type DropState
 dropIndex : DropState -> Maybe PipelineIndex
 dropIndex dropState =
     case dropState of
-        Dropping dropIndex ->
-            Just dropIndex
+        Dropping idx ->
+            Just idx
 
         NotDropping ->
             Nothing
@@ -313,13 +321,10 @@ jobStatus job =
 
 transition : Concourse.Job -> Maybe Time
 transition job =
-    case job.transitionBuild of
-        Just build ->
-            build.duration.finishedAt
-                |> Maybe.map Date.toTime
-
-        Nothing ->
-            Nothing
+    job.transitionBuild
+        |> Maybe.map .duration
+        |> Maybe.andThen .finishedAt
+        |> Maybe.map Date.toTime
 
 
 shiftPipelines : Int -> Int -> Group -> Group
@@ -396,13 +401,7 @@ group : List Models.Pipeline -> Maybe Concourse.User -> String -> Group
 group allPipelines user teamName =
     { pipelines = List.filter (.teamName >> (==) teamName) allPipelines
     , teamName = teamName
-    , tag =
-        case user of
-            Just u ->
-                Tag.tag u teamName
-
-            Nothing ->
-                Nothing
+    , tag = user |> Maybe.andThen (\u -> Tag.tag u teamName)
     }
 
 
@@ -465,9 +464,8 @@ view { dragState, dropState, now, hoveredPipeline, pipelineRunningKeyframes } gr
             [ style [ ( "display", "flex" ), ( "align-items", "center" ) ]
             , class stickyHeaderConfig.sectionHeaderClass
             ]
-            ([ Html.div [ class "dashboard-team-name" ] [ Html.text group.teamName ]
-             ]
-                ++ (Maybe.Extra.maybeToList <| Maybe.map (Tag.view False) group.tag)
+            (Html.div [ class "dashboard-team-name" ] [ Html.text group.teamName ]
+                :: (Maybe.Extra.maybeToList <| Maybe.map (Tag.view False) group.tag)
             )
         , Html.div [ class stickyHeaderConfig.sectionBodyClass ] pipelines
         ]
@@ -477,9 +475,8 @@ hdView : String -> Group -> Html Msg
 hdView pipelineRunningKeyframes group =
     let
         header =
-            [ Html.div [ class "dashboard-team-name" ] [ Html.text group.teamName ]
-            ]
-                ++ (Maybe.Extra.maybeToList <| Maybe.map (Tag.view True) group.tag)
+            Html.div [ class "dashboard-team-name" ] [ Html.text group.teamName ]
+                :: (Maybe.Extra.maybeToList <| Maybe.map (Tag.view True) group.tag)
 
         teamPipelines =
             if List.isEmpty group.pipelines then
@@ -521,16 +518,24 @@ pipelineNotSetView =
 pipelineDropAreaView : DragState -> DropState -> String -> Int -> Html Msg
 pipelineDropAreaView dragState dropState teamName index =
     let
-        ( active, over ) =
+        active =
+            case dragState of
+                Dragging team _ ->
+                    team == teamName
+
+                NotDragging ->
+                    False
+
+        over =
             case ( dragState, dropState ) of
-                ( Dragging team dragIndex, NotDropping ) ->
-                    ( team == teamName, index == dragIndex )
+                ( _, Dropping dropIndex ) ->
+                    index == dropIndex
 
-                ( Dragging team dragIndex, Dropping dropIndex ) ->
-                    ( team == teamName, index == dropIndex )
+                ( Dragging _ dragIndex, _ ) ->
+                    index == dragIndex
 
-                _ ->
-                    ( False, False )
+                ( _, _ ) ->
+                    False
     in
     Html.div
         [ classList [ ( "drop-area", True ), ( "active", active ), ( "over", over ), ( "animation", dropState /= NotDropping ) ]
