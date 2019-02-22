@@ -12,7 +12,7 @@ module Build.StepTree exposing
     )
 
 import Ansi.Log
-import Array exposing (Array)
+import Array
 import Build.Models
     exposing
         ( HookedStep
@@ -40,6 +40,7 @@ import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import List.Extra exposing ((!!))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import Spinner
 import StrictEvents
@@ -101,25 +102,25 @@ initMultiStep :
     Highlight
     -> Concourse.BuildResources
     -> String
-    -> (Array StepTree -> StepTree)
-    -> Array Concourse.BuildPlan
+    -> (List StepTree -> StepTree)
+    -> List Concourse.BuildPlan
     -> StepTreeModel
 initMultiStep hl resources planId constructor plans =
     let
         inited =
-            Array.map (init hl resources) plans
+            List.map (init hl resources) plans
 
         trees =
-            Array.map .tree inited
+            List.map .tree inited
 
         selfFoci =
             Dict.singleton planId { update = identity }
 
         foci =
             inited
-                |> Array.map .foci
-                |> Array.indexedMap wrapMultiStep
-                |> Array.foldr Dict.union selfFoci
+                |> List.map .foci
+                |> List.indexedMap wrapMultiStep
+                |> List.foldr Dict.union selfFoci
     in
     StepTreeModel (constructor trees) foci False hl Nothing
 
@@ -218,10 +219,10 @@ treeIsActive : StepTree -> Bool
 treeIsActive stepTree =
     case stepTree of
         Aggregate trees ->
-            List.any treeIsActive (Array.toList trees)
+            List.any treeIsActive trees
 
         Do trees ->
-            List.any treeIsActive (Array.toList trees)
+            List.any treeIsActive trees
 
         OnSuccess { step } ->
             treeIsActive step
@@ -242,7 +243,7 @@ treeIsActive stepTree =
             treeIsActive tree
 
         Retry _ _ _ trees ->
-            List.any treeIsActive (Array.toList trees)
+            List.any treeIsActive trees
 
         Task step ->
             stepIsActive step
@@ -467,54 +468,34 @@ updateHook update tree =
             Debug.crash "impossible"
 
 
-getMultiStepIndex : Int -> StepTree -> StepTree
-getMultiStepIndex idx tree =
-    let
-        steps =
-            case tree of
-                Aggregate trees ->
-                    trees
-
-                Do trees ->
-                    trees
-
-                Retry _ _ _ trees ->
-                    trees
-
-                _ ->
-                    Debug.crash "impossible"
-    in
-    case Array.get idx steps of
-        Just sub ->
-            sub
-
-        Nothing ->
-            Debug.crash "impossible"
-
-
 setMultiStepIndex : Int -> (StepTree -> StepTree) -> StepTree -> StepTree
 setMultiStepIndex idx update tree =
     case tree of
         Aggregate trees ->
-            Aggregate (Array.set idx (update (getMultiStepIndex idx tree)) trees)
+            Aggregate (setMultiStepIndex_ idx update trees)
 
         Do trees ->
-            Do (Array.set idx (update (getMultiStepIndex idx tree)) trees)
+            Do (setMultiStepIndex_ idx update trees)
 
-        Retry id tab focus trees ->
-            let
-                updatedSteps =
-                    Array.set idx (update (getMultiStepIndex idx tree)) trees
-            in
-            case focus of
-                Auto ->
-                    Retry id (idx + 1) Auto updatedSteps
+        Retry id tab Auto trees ->
+            Retry id (idx + 1) Auto (setMultiStepIndex_ idx update trees)
 
-                User ->
-                    Retry id tab User updatedSteps
+        Retry id tab User trees ->
+            Retry id tab User (setMultiStepIndex_ idx update trees)
 
         _ ->
             Debug.crash "impossible"
+
+
+setMultiStepIndex_ : Int -> (StepTree -> StepTree) -> List StepTree -> List StepTree
+setMultiStepIndex_ idx update trees =
+    case List.Extra.updateAt idx update trees of
+        Just updatedTrees ->
+            updatedTrees
+
+        --we should never get an out of bounds index, but if we do, doing nothing is safe
+        Nothing ->
+            trees
 
 
 view : StepTreeModel -> Html Msg
@@ -540,8 +521,8 @@ viewTree model tree =
         Retry id tab _ steps ->
             Html.div [ class "retry" ]
                 [ Html.ul [ class "retry-tabs" ]
-                    (Array.toList <| Array.indexedMap (viewTab id tab) steps)
-                , case Array.get (tab - 1) steps of
+                    (List.indexedMap (viewTab id tab) steps)
+                , case steps !! (tab - 1) of
                     Just step ->
                         viewTree model step
 
@@ -554,11 +535,11 @@ viewTree model tree =
 
         Aggregate steps ->
             Html.div [ class "aggregate" ]
-                (Array.toList <| Array.map (viewSeq model) steps)
+                (List.map (viewSeq model) steps)
 
         Do steps ->
             Html.div [ class "do" ]
-                (Array.toList <| Array.map (viewSeq model) steps)
+                (List.map (viewSeq model) steps)
 
         OnSuccess { step, hook } ->
             viewHooked "success" model step hook
@@ -661,7 +642,7 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, times
 
 viewLogs : Ansi.Log.Model -> Dict Int Date -> Highlight -> String -> List (Html Msg)
 viewLogs { lines } timestamps hl id =
-    Array.toList <| Array.indexedMap (\idx -> viewTimestampedLine timestamps hl id (idx + 1)) lines
+    List.indexedMap (\idx -> viewTimestampedLine timestamps hl id (idx + 1)) (Array.toList lines)
 
 
 viewTimestampedLine : Dict Int Date -> Highlight -> StepID -> Int -> Ansi.Log.Line -> Html Msg

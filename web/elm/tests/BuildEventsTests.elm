@@ -45,12 +45,9 @@ all =
                 |> Expect.equal
                     (Build.Msgs.Events <|
                         Ok <|
-                            Array.fromList <|
-                                List.repeat
-                                    3000
-                                <|
-                                    Build.Models.Log
-                                        { source = "stdout", id = "stepid" }
-                                        "log message"
-                                        Nothing
+                            List.repeat 3000 <|
+                                Build.Models.Log
+                                    { source = "stdout", id = "stepid" }
+                                    "log message"
+                                    Nothing
                     )

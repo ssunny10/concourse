@@ -57,7 +57,6 @@ module Concourse exposing
     , retrieveCSRFToken
     )
 
-import Array exposing (Array)
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Json.Decode
@@ -329,14 +328,14 @@ type BuildStep
     = BuildStepTask StepName
     | BuildStepGet StepName (Maybe Version)
     | BuildStepPut StepName
-    | BuildStepAggregate (Array BuildPlan)
-    | BuildStepDo (Array BuildPlan)
+    | BuildStepAggregate (List BuildPlan)
+    | BuildStepDo (List BuildPlan)
     | BuildStepOnSuccess HookedPlan
     | BuildStepOnFailure HookedPlan
     | BuildStepOnAbort HookedPlan
     | BuildStepEnsure HookedPlan
     | BuildStepTry BuildPlan
-    | BuildStepRetry (Array BuildPlan)
+    | BuildStepRetry (List BuildPlan)
     | BuildStepTimeout BuildPlan
 
 
@@ -396,13 +395,13 @@ decodeBuildStepPut =
 decodeBuildStepAggregate : Json.Decode.Decoder BuildStep
 decodeBuildStepAggregate =
     Json.Decode.succeed BuildStepAggregate
-        |: Json.Decode.array (lazy (\_ -> decodeBuildPlan_))
+        |: Json.Decode.list (lazy (\_ -> decodeBuildPlan_))
 
 
 decodeBuildStepDo : Json.Decode.Decoder BuildStep
 decodeBuildStepDo =
     Json.Decode.succeed BuildStepDo
-        |: Json.Decode.array (lazy (\_ -> decodeBuildPlan_))
+        |: Json.Decode.list (lazy (\_ -> decodeBuildPlan_))
 
 
 decodeBuildStepOnSuccess : Json.Decode.Decoder BuildStep
@@ -446,7 +445,7 @@ decodeBuildStepTry =
 decodeBuildStepRetry : Json.Decode.Decoder BuildStep
 decodeBuildStepRetry =
     Json.Decode.succeed BuildStepRetry
-        |: Json.Decode.array (lazy (\_ -> decodeBuildPlan_))
+        |: Json.Decode.list (lazy (\_ -> decodeBuildPlan_))
 
 
 decodeBuildStepTimeout : Json.Decode.Decoder BuildStep

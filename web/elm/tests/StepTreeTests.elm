@@ -13,7 +13,6 @@ module StepTreeTests exposing
     )
 
 import Ansi.Log
-import Array
 import Build.Models as Models
 import Build.StepTree as StepTree
 import Concourse exposing (BuildStep(..), HookedPlan)
@@ -154,8 +153,6 @@ initAggregate =
                 { id = "aggregate-id"
                 , step =
                     BuildStepAggregate
-                        << Array.fromList
-                    <|
                         [ { id = "task-a-id", step = BuildStepTask "task-a" }
                         , { id = "task-b-id", step = BuildStepTask "task-b" }
                         ]
@@ -166,8 +163,6 @@ initAggregate =
             \_ ->
                 Expect.equal
                     (Models.Aggregate
-                        << Array.fromList
-                     <|
                         [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
                         , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
                         ]
@@ -180,8 +175,6 @@ initAggregate =
                     tree
                     (\s -> { s | state = Models.StepStateSucceeded })
                     (Models.Aggregate
-                        << Array.fromList
-                     <|
                         [ Models.Task (someStep "task-a-id" "task-a" Models.StepStateSucceeded)
                         , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
                         ]
@@ -198,15 +191,11 @@ initAggregateNested =
                 { id = "aggregate-id"
                 , step =
                     BuildStepAggregate
-                        << Array.fromList
-                    <|
                         [ { id = "task-a-id", step = BuildStepTask "task-a" }
                         , { id = "task-b-id", step = BuildStepTask "task-b" }
                         , { id = "nested-aggregate-id"
                           , step =
                                 BuildStepAggregate
-                                    << Array.fromList
-                                <|
                                     [ { id = "task-c-id", step = BuildStepTask "task-c" }
                                     , { id = "task-d-id", step = BuildStepTask "task-d" }
                                     ]
@@ -219,13 +208,9 @@ initAggregateNested =
             \_ ->
                 Expect.equal
                     (Models.Aggregate
-                        << Array.fromList
-                     <|
                         [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
                         , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
                         , Models.Aggregate
-                            << Array.fromList
-                          <|
                             [ Models.Task (someStep "task-c-id" "task-c" Models.StepStatePending)
                             , Models.Task (someStep "task-d-id" "task-d" Models.StepStatePending)
                             ]
@@ -239,13 +224,9 @@ initAggregateNested =
                     tree
                     (\s -> { s | state = Models.StepStateSucceeded })
                     (Models.Aggregate
-                        << Array.fromList
-                     <|
                         [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
                         , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
                         , Models.Aggregate
-                            << Array.fromList
-                          <|
                             [ Models.Task (someStep "task-c-id" "task-c" Models.StepStateSucceeded)
                             , Models.Task (someStep "task-d-id" "task-d" Models.StepStatePending)
                             ]

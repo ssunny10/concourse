@@ -20,7 +20,6 @@ module Build.Models exposing
     )
 
 import Ansi.Log
-import Array exposing (Array)
 import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
@@ -115,14 +114,14 @@ type StepTree
     = Task Step
     | Get Step
     | Put Step
-    | Aggregate (Array StepTree)
-    | Do (Array StepTree)
+    | Aggregate (List StepTree)
+    | Do (List StepTree)
     | OnSuccess HookedStep
     | OnFailure HookedStep
     | OnAbort HookedStep
     | Ensure HookedStep
     | Try StepTree
-    | Retry StepID Int TabFocus (Array StepTree)
+    | Retry StepID Int TabFocus (List StepTree)
     | Timeout StepTree
 
 

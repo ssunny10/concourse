@@ -2,7 +2,6 @@ module BuildTests exposing (all)
 
 import Application.Application as Application
 import Application.Msgs as Msgs
-import Array
 import Build.Build as Build
 import Build.Models as Models
 import Build.Msgs
@@ -224,19 +223,18 @@ all =
                             (SubPage.Msgs.BuildMsg
                                 (Build.Msgs.BuildEventsMsg <|
                                     Build.Msgs.Events <|
-                                        Ok <|
-                                            Array.fromList
-                                                [ Models.StartTask
-                                                    { source = "stdout"
-                                                    , id = "stepid"
-                                                    }
-                                                , Models.Log
-                                                    { source = "stdout"
-                                                    , id = "stepid"
-                                                    }
-                                                    "log message"
-                                                    Nothing
-                                                ]
+                                        Ok
+                                            [ Models.StartTask
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                            , Models.Log
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                "log message"
+                                                Nothing
+                                            ]
                                 )
                             )
                         )
@@ -920,23 +918,22 @@ all =
                                         ( { id = "plan"
                                           , step =
                                                 Concourse.BuildStepDo <|
-                                                    Array.fromList
-                                                        [ { id = "foo"
-                                                          , step =
-                                                                Concourse.BuildStepGet "step"
-                                                                    (Just version)
-                                                          }
-                                                        , { id = "bar"
-                                                          , step =
-                                                                Concourse.BuildStepGet "step2"
-                                                                    (Just version)
-                                                          }
-                                                        , { id = "baz"
-                                                          , step =
-                                                                Concourse.BuildStepGet "step3"
-                                                                    (Just version)
-                                                          }
-                                                        ]
+                                                    [ { id = "foo"
+                                                      , step =
+                                                            Concourse.BuildStepGet "step"
+                                                                (Just version)
+                                                      }
+                                                    , { id = "bar"
+                                                      , step =
+                                                            Concourse.BuildStepGet "step2"
+                                                                (Just version)
+                                                      }
+                                                    , { id = "baz"
+                                                      , step =
+                                                            Concourse.BuildStepGet "step3"
+                                                                (Just version)
+                                                      }
+                                                    ]
                                           }
                                         , { inputs =
                                                 [ { name = "step"
@@ -1206,14 +1203,13 @@ all =
                         >> Build.update
                             (Build.Msgs.BuildEventsMsg <|
                                 Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.FinishGet
-                                                { source = "stdout", id = "plan" }
-                                                0
-                                                Dict.empty
-                                                []
-                                            ]
+                                    Ok
+                                        [ Models.FinishGet
+                                            { source = "stdout", id = "plan" }
+                                            0
+                                            Dict.empty
+                                            []
+                                        ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1235,14 +1231,13 @@ all =
                         >> Build.update
                             (Build.Msgs.BuildEventsMsg <|
                                 Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.FinishGet
-                                                { source = "stdout", id = "plan" }
-                                                0
-                                                (Dict.fromList [ ( "version", "v3.1.4" ) ])
-                                                []
-                                            ]
+                                    Ok
+                                        [ Models.FinishGet
+                                            { source = "stdout", id = "plan" }
+                                            0
+                                            (Dict.fromList [ ( "version", "v3.1.4" ) ])
+                                            []
+                                        ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1256,13 +1251,12 @@ all =
                         >> Build.update
                             (Build.Msgs.BuildEventsMsg <|
                                 Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.StartTask
-                                                { source = "stdout"
-                                                , id = "plan"
-                                                }
-                                            ]
+                                    Ok
+                                        [ Models.StartTask
+                                            { source = "stdout"
+                                            , id = "plan"
+                                            }
+                                        ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1284,14 +1278,13 @@ all =
                         >> Build.update
                             (Build.Msgs.BuildEventsMsg <|
                                 Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.FinishGet
-                                                { source = "stdout", id = "plan" }
-                                                1
-                                                Dict.empty
-                                                []
-                                            ]
+                                    Ok
+                                        [ Models.FinishGet
+                                            { source = "stdout", id = "plan" }
+                                            1
+                                            Dict.empty
+                                            []
+                                        ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1313,12 +1306,11 @@ all =
                         >> Build.update
                             (Build.Msgs.BuildEventsMsg <|
                                 Build.Msgs.Events <|
-                                    Ok <|
-                                        Array.fromList
-                                            [ Models.Error
-                                                { source = "stderr", id = "plan" }
-                                                "error message"
-                                            ]
+                                    Ok
+                                        [ Models.Error
+                                            { source = "stderr", id = "plan" }
+                                            "error message"
+                                        ]
                             )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1347,11 +1339,7 @@ all =
                             >> Build.update
                                 (Build.Msgs.BuildEventsMsg <|
                                     Build.Msgs.Events <|
-                                        Ok <|
-                                            Array.fromList
-                                                [ Models.BuildError
-                                                    "error message"
-                                                ]
+                                        Ok [ Models.BuildError "error message" ]
                                 )
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut

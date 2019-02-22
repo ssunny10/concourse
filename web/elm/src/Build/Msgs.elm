@@ -1,6 +1,5 @@
 module Build.Msgs exposing (EventsMsg(..), Msg(..), fromBuildMessage)
 
-import Array
 import Build.Models exposing (BuildEvent, Hoverable)
 import Concourse
 import Keyboard
@@ -36,7 +35,7 @@ type Msg
 type EventsMsg
     = Opened
     | Errored
-    | Events (Result String (Array.Array BuildEvent))
+    | Events (Result String (List BuildEvent))
 
 
 fromBuildMessage : Msg -> TopBar.Msgs.Msg

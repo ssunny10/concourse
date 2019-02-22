@@ -7,7 +7,6 @@ module TopBar.TopBar exposing
     , view
     )
 
-import Array
 import Callback exposing (Callback(..))
 import Char
 import Concourse
@@ -34,6 +33,7 @@ import Html.Styled.Events
         , onMouseLeave
         )
 import Http
+import List.Extra exposing ((!!))
 import QueryString
 import RemoteData
 import Routes
@@ -266,10 +266,10 @@ update msg model =
                                 Shown (Just selectedIdx) ->
                                     let
                                         options =
-                                            Array.fromList (dropdownOptions { query = r.query, teams = model.teams })
+                                            dropdownOptions { query = r.query, teams = model.teams }
 
                                         selectedItem =
-                                            Maybe.withDefault r.query (Array.get selectedIdx options)
+                                            Maybe.withDefault r.query (options !! selectedIdx)
                                     in
                                     ( { model
                                         | middleSection =

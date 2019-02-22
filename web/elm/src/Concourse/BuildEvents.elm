@@ -80,7 +80,7 @@ decodeBuildEvent eventType =
             Json.Decode.fail ("unknown event type: " ++ unknown)
 
 
-parseEvents : Array.Array ES.Event -> Result String (Array.Array BuildEvent)
+parseEvents : Array.Array ES.Event -> Result String (List BuildEvent)
 parseEvents evs =
     -- this is hard to read, but faster than a fold or using a List
     parseEventsFromIndex evs (Array.initialize (Array.length evs) (\_ -> End)) 0
@@ -90,11 +90,11 @@ parseEventsFromIndex :
     Array.Array ES.Event
     -> Array.Array BuildEvent
     -> Int
-    -> Result String (Array.Array BuildEvent)
+    -> Result String (List BuildEvent)
 parseEventsFromIndex evs acc i =
     case Array.get i evs of
         Nothing ->
-            Ok acc
+            Ok (Array.toList acc)
 
         Just ev ->
             case parseEvent ev of

@@ -144,7 +144,7 @@ handleEventsMsg msg model =
                 ( { model | state = NotAuthorized }, [], OutNoop )
 
         Events (Ok events) ->
-            Array.foldl handleEvent_ ( model, [], OutNoop ) events
+            List.foldl handleEvent_ ( model, [], OutNoop ) events
 
         Events (Err _) ->
             ( model, [], OutNoop )
