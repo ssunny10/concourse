@@ -13,7 +13,7 @@ require (
 	github.com/Jeffail/gabs v1.1.0 // indirect
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
 	github.com/Microsoft/go-winio v0.4.11 // indirect
-	github.com/NYTimes/gziphandler v1.0.1
+	github.com/NYTimes/gziphandler v1.1.0
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/PuerkitoBio/purell v1.1.0 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
@@ -24,7 +24,7 @@ require (
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
 	github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf // indirect
-	github.com/aws/aws-sdk-go v1.16.30
+	github.com/aws/aws-sdk-go v1.17.1
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmatcuk/doublestar v1.1.1 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
@@ -36,7 +36,7 @@ require (
 	github.com/cloudfoundry/bosh-utils v0.0.0-20181224171034-c2cf699102bd // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
-	github.com/concourse/baggageclaim v1.3.4
+	github.com/concourse/baggageclaim v1.3.5
 	github.com/concourse/dex v0.0.0-20181120155244-024cbea7e753
 	github.com/concourse/flag v1.0.0
 	github.com/concourse/go-archive v1.0.0
@@ -143,7 +143,6 @@ require (
 	github.com/skratchdot/open-golang v0.0.0-20160302144031-75fb7ed4208c
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/square/certstrap v1.1.1
-	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc
 	github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958
 	github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926 // indirect

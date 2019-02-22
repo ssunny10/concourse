@@ -57,6 +57,7 @@ groups:
   - bosh-smoke
   - bosh-topgun
   - bosh-prod-deploy
+  - bosh-wings-deploy
   - bosh-check-props
   - merge-cbd
 
@@ -749,6 +750,56 @@ jobs:
         default_task_cpu_limit: 1024
         worker_rebalance_interval: 30m
 
+- name: bosh-wings-deploy
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [bosh-prod-deploy]
+    - get: version
+      passed: [bosh-prod-deploy]
+    - get: concourse-release
+      passed: [bosh-prod-deploy]
+    - get: bpm-release
+      passed: [bosh-prod-deploy]
+    - get: gcp-xenial-stemcell
+      passed: [bosh-prod-deploy]
+    - get: cbd
+      passed: [bosh-prod-deploy]
+    - get: prod
+  - put: wings-deployment
+    params:
+      manifest: cbd/cluster/concourse.yml
+      stemcells:
+      - gcp-xenial-stemcell/*.tgz
+      releases:
+      - concourse-release/*.tgz
+      - bpm-release/*.tgz
+      ops_files:
+      - cbd/cluster/operations/dev-versions.yml
+      - cbd/cluster/operations/debug-concourse.yml
+      - cbd/cluster/operations/privileged-http.yml
+      - cbd/cluster/operations/privileged-https.yml
+      - cbd/cluster/operations/tls.yml
+      - cbd/cluster/operations/web-network-extension.yml
+      - cbd/cluster/operations/scale.yml
+      - cbd/cluster/operations/syslog_forwarder.yml
+      - cbd/cluster/operations/team-authorized-keys.yml
+      - cbd/cluster/operations/storage-driver.yml
+      - cbd/cluster/operations/external-postgres.yml
+      - cbd/cluster/operations/external-postgres-tls.yml
+      - cbd/cluster/operations/influxdb.yml
+      - cbd/cluster/operations/container-placement-strategy.yml
+      - cbd/cluster/operations/github-auth.yml
+      - cbd/cluster/operations/add-local-users.yml
+      - cbd/cluster/operations/worker-rebalancing.yml
+      - cbd/cluster/operations/encryption.yml
+      - cbd/cluster/operations/garden-dns.yml
+      - cbd/cluster/operations/max-in-flight.yml
+      - cbd/cluster/operations/worker-max-in-flight.yml
+      - prod/wings/ops.yml
+      vars_files:
+      - prod/wings/vars.yml
 
 - name: push-docs
   public: true
@@ -1105,6 +1156,14 @@ resources:
     client_secret: ((bosh_client.secret))
     deployment: concourse-prod
 
+- name: wings-deployment
+  type: bosh-deployment
+  source:
+    target: ((bosh_target))
+    client: ((bosh_client.id))
+    client_secret: ((bosh_client.secret))
+    deployment: concourse-wings
+
 - name: gcp-xenial-stemcell
   type: bosh-io-stemcell
   source:
@@ -1132,8 +1191,14 @@ resources:
 - name: charts
   type: git
   source:
-     uri: https://github.com/concourse/charts.git
-     branch: merged
+    uri: https://github.com/concourse/charts.git
+    branch: merged
+
+- name: prod
+  type: git
+  source:
+    uri: https://github.com/concourse/prod.git
+    branch: master
 
 - name: golang-windows
   type: s3

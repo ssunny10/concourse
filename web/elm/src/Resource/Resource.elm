@@ -1133,7 +1133,7 @@ commentBar :
             , pinCommentLoading : Bool
         }
     -> Html Msg
-commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLoading } as params) =
+commentBar userState { resourceIdentifier, pinnedVersion, hovered, pinCommentLoading } =
     case pinnedVersion of
         PinnedDynamicallyTo commentState v ->
             let
