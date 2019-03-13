@@ -319,6 +319,7 @@ var _ = Describe("TaskStep", func() {
 								ImageURL:   "some-image",
 								Privileged: false,
 							},
+							Type:    "task",
 							Dir:     "some-artifact-root",
 							Env:     []string{"SOME=params"},
 							Inputs:  []worker.InputSource{},
