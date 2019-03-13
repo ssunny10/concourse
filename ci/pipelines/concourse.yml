@@ -538,6 +538,49 @@ jobs:
   serial: true
   plan:
   - aggregate:
+    - get: bosh-io-release-resource
+      params:
+        globs: "*ubuntu.tgz"
+    - get: bosh-io-stemcell-resource
+      params:
+        globs: "*ubuntu.tgz"
+    - get: cf-resource
+      params:
+        globs: "*ubuntu.tgz"
+    - get: docker-image-resource
+      params:
+        globs: "*ubuntu.tgz"
+    - get: git-resource
+      params:
+        globs: "*ubuntu.tgz"
+    - get: github-release-resource
+      params:
+        globs: "*ubuntu.tgz"
+    - get: hg-resource
+      params:
+        globs: "*ubuntu.tgz"
+    - get: pool-resource
+      params:
+        globs: "*ubuntu.tgz"
+    - get: registry-image-resource
+      params:
+        globs: "*ubuntu.tgz"
+    - get: s3-resource
+      params:
+        globs: "*ubuntu.tgz"
+    - get: semver-resource
+      params:
+        globs: "*ubuntu.tgz"
+    - get: time-resource
+      params:
+        globs: "*ubuntu.tgz"
+    - get: tracker-resource
+      params:
+        globs: "*ubuntu.tgz"
+    - get: mock-resource
+      params:
+        globs: "*ubuntu.tgz"
+
     - get: concourse
       passed: [bin-smoke]
       trigger: true
@@ -554,6 +597,8 @@ jobs:
       passed: [build-rc]
       trigger: true
     - get: concourse-release-repo
+  - task: repack-bionic-resources
+    file: concourse/ci/tasks/repack-resources-for-bosh.yml
   - task: bump-concourse-blobs
     file: concourse/ci/tasks/bump-concourse-blobs.yml
     image: unit-image

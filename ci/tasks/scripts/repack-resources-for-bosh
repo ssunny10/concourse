@@ -1,0 +1,26 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -x -e
+
+work_dir=$(pwd)
+concourse_dir=$work_dir/concourse
+
+# untar concourse.tgz
+pushd linux-rc
+  tar_file_name=$(ls concourse-*.tgz)
+  tar -xzf $tar_file_name -C $work_dir
+popd
+
+# untar resource release into proper folder for concourse
+pushd resources
+  for resource in *; do
+    tar -xzf $resource/*ubuntu.tgz -C "$concourse_dir/resource-types/$resource"
+  done
+popd
+
+# tar concourse.tgz back together
+
+tar -czf linux-rc/$tar_file_name -C $work_dir concourse
+# linux-rc/concourse.....tgz
+
