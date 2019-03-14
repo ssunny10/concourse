@@ -2,13 +2,13 @@
 package dbfakes
 
 import (
-	sync "sync"
-	time "time"
+	"sync"
+	"time"
 
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	creds "github.com/concourse/concourse/atc/creds"
-	db "github.com/concourse/concourse/atc/db"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type FakeTeam struct {
@@ -296,13 +296,12 @@ type FakeTeam struct {
 	renameReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SavePipelineStub        func(string, atc.Config, db.ConfigVersion, db.PipelinePausedState) (db.Pipeline, bool, error)
+	SavePipelineStub        func(string, atc.Config, db.ConfigVersion) (db.Pipeline, bool, error)
 	savePipelineMutex       sync.RWMutex
 	savePipelineArgsForCall []struct {
 		arg1 string
 		arg2 atc.Config
 		arg3 db.ConfigVersion
-		arg4 db.PipelinePausedState
 	}
 	savePipelineReturns struct {
 		result1 db.Pipeline
@@ -1701,19 +1700,18 @@ func (fake *FakeTeam) RenameReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTeam) SavePipeline(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion, arg4 db.PipelinePausedState) (db.Pipeline, bool, error) {
+func (fake *FakeTeam) SavePipeline(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion) (db.Pipeline, bool, error) {
 	fake.savePipelineMutex.Lock()
 	ret, specificReturn := fake.savePipelineReturnsOnCall[len(fake.savePipelineArgsForCall)]
 	fake.savePipelineArgsForCall = append(fake.savePipelineArgsForCall, struct {
 		arg1 string
 		arg2 atc.Config
 		arg3 db.ConfigVersion
-		arg4 db.PipelinePausedState
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("SavePipeline", []interface{}{arg1, arg2, arg3, arg4})
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("SavePipeline", []interface{}{arg1, arg2, arg3})
 	fake.savePipelineMutex.Unlock()
 	if fake.SavePipelineStub != nil {
-		return fake.SavePipelineStub(arg1, arg2, arg3, arg4)
+		return fake.SavePipelineStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -1728,17 +1726,17 @@ func (fake *FakeTeam) SavePipelineCallCount() int {
 	return len(fake.savePipelineArgsForCall)
 }
 
-func (fake *FakeTeam) SavePipelineCalls(stub func(string, atc.Config, db.ConfigVersion, db.PipelinePausedState) (db.Pipeline, bool, error)) {
+func (fake *FakeTeam) SavePipelineCalls(stub func(string, atc.Config, db.ConfigVersion) (db.Pipeline, bool, error)) {
 	fake.savePipelineMutex.Lock()
 	defer fake.savePipelineMutex.Unlock()
 	fake.SavePipelineStub = stub
 }
 
-func (fake *FakeTeam) SavePipelineArgsForCall(i int) (string, atc.Config, db.ConfigVersion, db.PipelinePausedState) {
+func (fake *FakeTeam) SavePipelineArgsForCall(i int) (string, atc.Config, db.ConfigVersion) {
 	fake.savePipelineMutex.RLock()
 	defer fake.savePipelineMutex.RUnlock()
 	argsForCall := fake.savePipelineArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeTeam) SavePipelineReturns(result1 db.Pipeline, result2 bool, result3 error) {
