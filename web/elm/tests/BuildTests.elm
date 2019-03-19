@@ -14,6 +14,7 @@ import DashboardTests
     exposing
         ( defineHoverBehaviour
         , iconSelector
+        , isColorWithStripes
         , middleGrey
         )
 import Date
@@ -88,8 +89,8 @@ all =
                         }
                 , status = Concourse.BuildStatusStarted
                 , duration =
-                    { startedAt = Nothing
-                    , finishedAt = Nothing
+                    { startedAt = Just (Date.fromTime 0)
+                    , finishedAt = Just (Date.fromTime 0)
                     }
                 , reapTime = Nothing
                 }
@@ -98,6 +99,51 @@ all =
             fetchBuild =
                 flip (,) []
                     >> (Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, theBuild ))
+
+            fetchBuildWithStatus : Concourse.BuildStatus -> Models.Model -> Models.Model
+            fetchBuildWithStatus status =
+                flip (,) []
+                    >> Build.handleCallback
+                        (Callback.BuildFetched
+                            (Ok
+                                ( 1
+                                , { id = 1
+                                  , name = "1"
+                                  , job = Nothing
+                                  , status = status
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                            )
+                        )
+                    >> Tuple.mapSecond (always [])
+                    >> Build.handleCallback
+                        (Callback.BuildHistoryFetched
+                            (Ok
+                                { pagination =
+                                    { previousPage = Nothing
+                                    , nextPage = Nothing
+                                    }
+                                , content =
+                                    [ { id = 0
+                                      , name = "0"
+                                      , job = Nothing
+                                      , status = status
+                                      , duration =
+                                            { startedAt = Nothing
+                                            , finishedAt = Nothing
+                                            }
+                                      , reapTime = Nothing
+                                      }
+                                    ]
+                                }
+                            )
+                        )
+                    >> Tuple.first
 
             fetchStartedBuild :
                 Models.Model
@@ -652,6 +698,124 @@ all =
                         |> Query.fromHtml
                         |> Query.find [ id "build-header" ]
                         |> Query.hasNot [ text "1d" ]
+            , describe "build banner coloration"
+                [ test "pending build has grey banner" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusPending
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "build-header" ]
+                            |> Query.has [ style [ ( "background", "#9b9b9b" ) ] ]
+                , test "started build has yellow banner" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusStarted
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "build-header" ]
+                            |> Query.has [ style [ ( "background", "#f1c40f" ) ] ]
+                , test "succeeded build has green banner" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusSucceeded
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "build-header" ]
+                            |> Query.has [ style [ ( "background", "#11c560" ) ] ]
+                , test "failed build has red banner" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusFailed
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "build-header" ]
+                            |> Query.has [ style [ ( "background", "#ed4b35" ) ] ]
+                , test "errored build has amber banner" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusErrored
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "build-header" ]
+                            |> Query.has [ style [ ( "background", "#f5a623" ) ] ]
+                , test "aborted build has brown banner" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusAborted
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "build-header" ]
+                            |> Query.has [ style [ ( "background", "#8b572a" ) ] ]
+                ]
+            , describe "build history tab coloration"
+                [ test "pending build has grey tab in build history" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusPending
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "builds" ]
+                            |> Query.find [ tag "li" ]
+                            |> Query.has [ style [ ( "background", "#9b9b9b" ) ] ]
+                , test "started build has animated striped yellow tab in build history" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusStarted
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "builds" ]
+                            |> Query.find [ tag "li" ]
+                            |> isColorWithStripes { thick = "#f1c40f", thin = "#fad43b" }
+                , test "succeeded build has green tab in build history" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusSucceeded
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "builds" ]
+                            |> Query.find [ tag "li" ]
+                            |> Query.has [ style [ ( "background", "#11c560" ) ] ]
+                , test "failed build has red tab in build history" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusFailed
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "builds" ]
+                            |> Query.find [ tag "li" ]
+                            |> Query.has [ style [ ( "background", "#ed4b35" ) ] ]
+                , test "errored build has amber tab in build history" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusErrored
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "builds" ]
+                            |> Query.find [ tag "li" ]
+                            |> Query.has [ style [ ( "background", "#f5a623" ) ] ]
+                , test "aborted build has brown tab in build history" <|
+                    \_ ->
+                        pageLoad
+                            |> Tuple.first
+                            |> fetchBuildWithStatus Concourse.BuildStatusAborted
+                            |> Build.view UserState.UserStateLoggedOut
+                            |> Query.fromHtml
+                            |> Query.find [ id "builds" ]
+                            |> Query.find [ tag "li" ]
+                            |> Query.has [ style [ ( "background", "#8b572a" ) ] ]
+                ]
             , test "header spreads out contents" <|
                 givenBuildFetched
                     >> Tuple.first
@@ -685,7 +849,7 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , test "trigger build button is styled as a plain grey box" <|
+                , test "trigger build button is styled as a box of the color of the build status" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -697,10 +861,35 @@ all =
                         >> Query.has
                             [ style
                                 [ ( "padding", "10px" )
-                                , ( "border", "none" )
-                                , ( "background-color", middleGrey )
+                                , ( "background-color", brightGreen )
                                 , ( "outline", "none" )
                                 , ( "margin", "0" )
+                                , ( "border-width", "0 0 0 1px" )
+                                , ( "border-color", darkGrey )
+                                , ( "border-style", "solid" )
+                                ]
+                            ]
+                , test "hovered trigger build button is styled as a box of the secondary color of the build status" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.update
+                            (Build.Msgs.Hover <| Just Models.Trigger)
+                        >> Tuple.first
+                        >> Build.view UserState.UserStateLoggedOut
+                        >> Query.fromHtml
+                        >> Query.find
+                            [ attribute <|
+                                Attr.attribute "aria-label" "Trigger Build"
+                            ]
+                        >> Query.has
+                            [ style
+                                [ ( "padding", "10px" )
+                                , ( "background-color", darkGreen )
+                                , ( "outline", "none" )
+                                , ( "margin", "0" )
+                                , ( "border-width", "0 0 0 1px" )
+                                , ( "border-color", darkGrey )
+                                , ( "border-style", "solid" )
                                 ]
                             ]
                 , test "trigger build button has pointer cursor" <|
@@ -730,41 +919,8 @@ all =
                                 , image = "ic-add-circle-outline-white.svg"
                                 }
                             )
-                , defineHoverBehaviour
-                    { name = "trigger build button"
-                    , setup =
-                        givenHistoryAndDetailsFetched () |> Tuple.first
-                    , query =
-                        Build.view UserState.UserStateLoggedOut
-                            >> Query.fromHtml
-                            >> Query.find
-                                [ attribute <|
-                                    Attr.attribute "aria-label" "Trigger Build"
-                                ]
-                    , updateFunc = \msg -> flip (,) [] >> Build.update msg >> Tuple.first
-                    , unhoveredSelector =
-                        { description = "grey plus icon"
-                        , selector =
-                            [ style [ ( "opacity", "0.5" ) ] ]
-                                ++ iconSelector
-                                    { size = "40px"
-                                    , image = "ic-add-circle-outline-white.svg"
-                                    }
-                        }
-                    , hoveredSelector =
-                        { description = "white plus icon"
-                        , selector =
-                            [ style [ ( "opacity", "1" ) ] ]
-                                ++ iconSelector
-                                    { size = "40px"
-                                    , image = "ic-add-circle-outline-white.svg"
-                                    }
-                        }
-                    , mouseEnterMsg = Build.Msgs.Hover <| Just Models.Trigger
-                    , mouseLeaveMsg = Build.Msgs.Hover Nothing
-                    }
                 ]
-            , describe "when history and details witche dwith maual triggering disabled" <|
+            , describe "when history and details fetched with maual triggering disabled" <|
                 let
                     givenHistoryAndDetailsFetched =
                         givenBuildFetched
@@ -798,11 +954,10 @@ all =
                     , unhoveredSelector =
                         { description = "grey plus icon"
                         , selector =
-                            [ style [ ( "opacity", "0.5" ) ] ]
-                                ++ iconSelector
-                                    { size = "40px"
-                                    , image = "ic-add-circle-outline-white.svg"
-                                    }
+                            iconSelector
+                                { size = "40px"
+                                , image = "ic-add-circle-outline-white.svg"
+                                }
                         }
                     , hoveredSelector =
                         { description = "grey plus icon with tooltip"
@@ -824,14 +979,10 @@ all =
                                     ]
                                 ]
                             , containing <|
-                                [ style
-                                    [ ( "opacity", "0.5" )
-                                    ]
-                                ]
-                                    ++ iconSelector
-                                        { size = "40px"
-                                        , image = "ic-add-circle-outline-white.svg"
-                                        }
+                                iconSelector
+                                    { size = "40px"
+                                    , image = "ic-add-circle-outline-white.svg"
+                                    }
                             ]
                         }
                     , mouseEnterMsg = Build.Msgs.Hover <| Just Models.Trigger
@@ -844,8 +995,7 @@ all =
                 givenBuildStarted _ =
                     pageLoad
                         |> Tuple.first
-                        |> fetchStartedBuild
-                        |> Tuple.first
+                        |> fetchBuildWithStatus Concourse.BuildStatusStarted
                         |> fetchHistory
                         |> Tuple.first
                         |> fetchJobDetails
@@ -873,7 +1023,7 @@ all =
                         [ attribute <|
                             Attr.attribute "aria-label" "Abort Build"
                         ]
-            , test "abort build button is styled as a plain grey box" <|
+            , test "abort build button is styled as a bright red box" <|
                 givenBuildStarted
                     >> Tuple.first
                     >> Build.view UserState.UserStateLoggedOut
@@ -885,10 +1035,34 @@ all =
                     >> Query.has
                         [ style
                             [ ( "padding", "10px" )
-                            , ( "border", "none" )
-                            , ( "background-color", middleGrey )
+                            , ( "background-color", brightRed )
                             , ( "outline", "none" )
                             , ( "margin", "0" )
+                            , ( "border-width", "0 0 0 1px" )
+                            , ( "border-color", darkGrey )
+                            , ( "border-style", "solid" )
+                            ]
+                        ]
+            , test "hovered abort build button is styled as a dark red box" <|
+                givenBuildStarted
+                    >> Tuple.mapSecond (always [])
+                    >> Build.update (Build.Msgs.Hover (Just Models.Abort))
+                    >> Tuple.first
+                    >> Build.view UserState.UserStateLoggedOut
+                    >> Query.fromHtml
+                    >> Query.find
+                        [ attribute <|
+                            Attr.attribute "aria-label" "Abort Build"
+                        ]
+                    >> Query.has
+                        [ style
+                            [ ( "padding", "10px" )
+                            , ( "background-color", darkRed )
+                            , ( "outline", "none" )
+                            , ( "margin", "0" )
+                            , ( "border-width", "0 0 0 1px" )
+                            , ( "border-color", darkGrey )
+                            , ( "border-style", "solid" )
                             ]
                         ]
             , test "abort build button has pointer cursor" <|
@@ -918,40 +1092,6 @@ all =
                             , image = "ic-abort-circle-outline-white.svg"
                             }
                         )
-            , defineHoverBehaviour
-                { name = "abort build button"
-                , setup =
-                    givenBuildStarted ()
-                        |> Tuple.first
-                , query =
-                    Build.view UserState.UserStateLoggedOut
-                        >> Query.fromHtml
-                        >> Query.find
-                            [ attribute <|
-                                Attr.attribute "aria-label" "Abort Build"
-                            ]
-                , updateFunc = \msg -> flip (,) [] >> Build.update msg >> Tuple.first
-                , unhoveredSelector =
-                    { description = "grey abort icon"
-                    , selector =
-                        [ style [ ( "opacity", "0.5" ) ] ]
-                            ++ iconSelector
-                                { size = "40px"
-                                , image = "ic-abort-circle-outline-white.svg"
-                                }
-                    }
-                , hoveredSelector =
-                    { description = "white abort icon"
-                    , selector =
-                        [ style [ ( "opacity", "1" ) ] ]
-                            ++ iconSelector
-                                { size = "40px"
-                                , image = "ic-abort-circle-outline-white.svg"
-                                }
-                    }
-                , mouseEnterMsg = Build.Msgs.Hover <| Just Models.Abort
-                , mouseLeaveMsg = Build.Msgs.Hover Nothing
-                }
             , describe "build prep section"
                 [ test "when pipeline is not paused, shows a check" <|
                     let
@@ -1767,6 +1907,141 @@ all =
                             >> Query.has [ attribute <| Attr.src url ]
                     ]
                 ]
+            , describe "get step with metadata" <|
+                let
+                    httpURLText =
+                        "http://some-url"
+
+                    httpsURLText =
+                        "https://some-url"
+
+                    plainText =
+                        "plain-text"
+
+                    metadataView =
+                        Application.init
+                            { turbulenceImgSrc = ""
+                            , notFoundImgSrc = ""
+                            , csrfToken = "csrf_token"
+                            , authToken = ""
+                            , pipelineRunningKeyframes = ""
+                            }
+                            { href = ""
+                            , host = ""
+                            , hostname = ""
+                            , protocol = ""
+                            , origin = ""
+                            , port_ = ""
+                            , pathname = "/teams/t/pipelines/p/jobs/j/builds/307"
+                            , search = ""
+                            , hash = "#Lstepid:1"
+                            , username = ""
+                            , password = ""
+                            }
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Effects.SubPage 1)
+                                (Callback.BuildFetched <|
+                                    Ok
+                                        ( 1
+                                        , { id = 307
+                                          , name = "307"
+                                          , job =
+                                                Just
+                                                    { teamName = "t"
+                                                    , pipelineName = "p"
+                                                    , jobName = "j"
+                                                    }
+                                          , status = Concourse.BuildStatusStarted
+                                          , duration =
+                                                { startedAt = Nothing
+                                                , finishedAt = Nothing
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Effects.SubPage 1)
+                                (Callback.PlanAndResourcesFetched 307 <|
+                                    Ok <|
+                                        ( { id = "stepid"
+                                          , step =
+                                                Concourse.BuildStepGet
+                                                    "step"
+                                                    (Just <| Dict.fromList [ ( "version", "1" ) ])
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    EventsReceived <|
+                                        Ok <|
+                                            [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                              , data =
+                                                    STModels.FinishGet
+                                                        { source = "stdout"
+                                                        , id = "stepid"
+                                                        }
+                                                        1
+                                                        (Dict.fromList [ ( "version", "1" ) ])
+                                                        [ { name = "http-url"
+                                                          , value = httpURLText
+                                                          }
+                                                        , { name = "https-url"
+                                                          , value = httpsURLText
+                                                          }
+                                                        , { name = "plain-text"
+                                                          , value = plainText
+                                                          }
+                                                        ]
+                                              }
+                                            ]
+                                )
+                            |> Tuple.first
+                            |> Application.view
+                            |> Query.fromHtml
+                in
+                [ test "should show hyperlink if metadata starts with 'http://'" <|
+                    \_ ->
+                        metadataView
+                            |> Query.find
+                                [ containing [ text httpURLText ]
+                                ]
+                            |> Query.has
+                                [ tag "a"
+                                , style [ ( "text-decoration-line", "underline" ) ]
+                                , attribute <| Attr.target "_blank"
+                                , attribute <| Attr.href httpURLText
+                                ]
+                , test "should show hyperlink if metadata starts with 'https://'" <|
+                    \_ ->
+                        metadataView
+                            |> Query.find
+                                [ containing [ text httpsURLText ]
+                                ]
+                            |> Query.has
+                                [ tag "a"
+                                , style [ ( "text-decoration-line", "underline" ) ]
+                                , attribute <| Attr.target "_blank"
+                                , attribute <| Attr.href httpsURLText
+                                ]
+                , test "should not show hyperlink if metadata is plain text" <|
+                    \_ ->
+                        metadataView
+                            |> Query.find
+                                [ containing [ text plainText ]
+                                ]
+                            |> Query.hasNot
+                                [ tag "a"
+                                , style [ ( "text-decoration-line", "underline" ) ]
+                                , attribute <| Attr.target "_blank"
+                                , attribute <| Attr.href plainText
+                                ]
+                ]
             ]
         ]
 
@@ -1774,6 +2049,31 @@ all =
 tooltipGreyHex : String
 tooltipGreyHex =
     "#9b9b9b"
+
+
+darkRed : String
+darkRed =
+    "#bd3826"
+
+
+brightRed : String
+brightRed =
+    "#ed4b35"
+
+
+darkGreen : String
+darkGreen =
+    "#419867"
+
+
+brightGreen : String
+brightGreen =
+    "#11c560"
+
+
+darkGrey : String
+darkGrey =
+    "#3d3c3c"
 
 
 receiveEvent :

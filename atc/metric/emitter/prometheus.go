@@ -326,11 +326,12 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		schedulingFullDuration:    schedulingFullDuration,
 		schedulingLoadingDuration: schedulingLoadingDuration,
 
-		workerContainers: workerContainers,
-		workerVolumes:    workerVolumes,
+		workerContainers:      workerContainers,
 		workerBuildContainers: workerBuildContainers,
 		workerCheckContainers: workerCheckContainers,
-		workerLastSeen:   map[string]time.Time{},
+		workersRegistered:     workersRegistered,
+		workerVolumes:         workerVolumes,
+		workerLastSeen:        map[string]time.Time{},
 	}
 	go emitter.periodicMetricGC()
 

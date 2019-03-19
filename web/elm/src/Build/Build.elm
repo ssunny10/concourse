@@ -111,7 +111,6 @@ init flags =
           , browsingIndex = 0
           , autoScroll = True
           , previousKeyPress = Nothing
-          , shiftDown = False
           , previousTriggerBuildByKey = False
           , showHelp = False
           , highlight = flags.highlight
@@ -119,10 +118,11 @@ init flags =
           , hoveredCounter = 0
           , isUserMenuExpanded = topBar.isUserMenuExpanded
           , isPinMenuExpanded = topBar.isPinMenuExpanded
-          , middleSection = topBar.middleSection
-          , teams = topBar.teams
+          , route = topBar.route
+          , groups = topBar.groups
+          , dropdown = topBar.dropdown
           , screenSize = topBar.screenSize
-          , highDensity = topBar.highDensity
+          , shiftDown = topBar.shiftDown
           }
         , topBarEffects ++ [ GetCurrentTime ]
         )
@@ -212,11 +212,11 @@ getUpdateMessage model =
 
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
 handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
+    TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
-handleCallbackWithoutTopBar action ( model, effects ) =
+handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody action ( model, effects ) =
     case action of
         BuildTriggered (Ok build) ->
             ( { model | history = build :: model.history }
@@ -1041,7 +1041,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                         , onFocus <| Hover (Just Trigger)
                         , onMouseLeave <| Hover Nothing
                         , onBlur <| Hover Nothing
-                        , style <| Styles.triggerButton buttonDisabled
+                        , style <| Styles.triggerButton buttonDisabled buttonHovered build.status
                         ]
                     <|
                         [ Html.div
@@ -1064,6 +1064,9 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                 Nothing ->
                     Html.text ""
 
+        abortHovered =
+            hoveredElement == Just Abort
+
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then
                 Html.button
@@ -1076,14 +1079,10 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                     , onFocus <| Hover (Just Abort)
                     , onMouseLeave <| Hover Nothing
                     , onBlur <| Hover Nothing
-                    , style Styles.abortButton
+                    , style <| Styles.abortButton <| abortHovered
                     ]
                     [ Html.div
-                        [ style <|
-                            Styles.abortIcon <|
-                                hoveredElement
-                                    == Just Abort
-                        ]
+                        [ style <| Styles.abortIcon <| abortHovered ]
                         []
                     ]
 
@@ -1111,11 +1110,8 @@ viewBuildHeader build { now, job, history, hoveredElement } =
     Html.div [ class "fixed-header" ]
         [ Html.div
             [ id "build-header"
-            , class ("build-header " ++ Concourse.BuildStatus.show build.status)
-            , style
-                [ ( "display", "flex" )
-                , ( "justify-content", "space-between" )
-                ]
+            , class "build-header"
+            , style <| Styles.header build.status
             ]
             [ Html.div []
                 [ Html.h1 [] [ buildTitle ]
@@ -1131,8 +1127,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                 [ abortButton, triggerButton ]
             ]
         , Html.div
-            [ onMouseWheel ScrollBuilds
-            ]
+            [ onMouseWheel ScrollBuilds ]
             [ lazyViewHistory build history ]
         ]
 
@@ -1151,12 +1146,14 @@ viewHistory currentBuild builds =
 viewHistoryItem : Concourse.Build -> Concourse.Build -> Html Msg
 viewHistoryItem currentBuild build =
     Html.li
-        [ if build.id == currentBuild.id then
-            class (Concourse.BuildStatus.show currentBuild.status ++ " current")
+        (if build.id == currentBuild.id then
+            [ class "current"
+            , style <| Styles.historyItem currentBuild.status
+            ]
 
-          else
-            class (Concourse.BuildStatus.show build.status)
-        ]
+         else
+            [ style <| Styles.historyItem build.status ]
+        )
         [ Html.a
             [ onLeftClick <| SwitchToBuild build
             , href <| Routes.toString <| Routes.buildRoute build
