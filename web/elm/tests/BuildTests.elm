@@ -15,7 +15,6 @@ import DashboardTests
         , isColorWithStripes
         , middleGrey
         )
-import Date
 import Dict
 import Expect
 import Html.Attributes as Attr
@@ -72,8 +71,8 @@ all =
                         }
                 , status = Concourse.BuildStatusSucceeded
                 , duration =
-                    { startedAt = Just (Date.fromTime 0)
-                    , finishedAt = Just (Date.fromTime 0)
+                    { startedAt = Just (Time.posixFromMillis 0)
+                    , finishedAt = Just (Time.posixFromMillis 0)
                     }
                 , reapTime = Nothing
                 }
@@ -90,20 +89,20 @@ all =
                         }
                 , status = Concourse.BuildStatusStarted
                 , duration =
-                    { startedAt = Just (Date.fromTime 0)
-                    , finishedAt = Just (Date.fromTime 0)
+                    { startedAt = Just (Time.posixFromMillis 0)
+                    , finishedAt = Just (Time.posixFromMillis 0)
                     }
                 , reapTime = Nothing
                 }
 
             fetchBuild : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchBuild =
-                flip (,) []
+                (\a -> (\a b -> ( a, b )) a [])
                     >> (Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, theBuild ))
 
             fetchBuildWithStatus : Concourse.BuildStatus -> Models.Model -> Models.Model
             fetchBuildWithStatus status =
-                flip (,) []
+                (\a -> (\a b -> ( a, b )) a [])
                     >> Build.handleCallback
                         (Callback.BuildFetched
                             (Ok
@@ -150,14 +149,14 @@ all =
                 Models.Model
                 -> ( Models.Model, List Effects.Effect )
             fetchStartedBuild =
-                flip (,) []
+                (\a -> (\a b -> ( a, b )) a [])
                     >> (Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, startedBuild ))
 
             fetchJobDetails :
                 Models.Model
                 -> ( Models.Model, List Effects.Effect )
             fetchJobDetails =
-                flip (,) []
+                (\a -> (\a b -> ( a, b )) a [])
                     >> (Build.handleCallback <|
                             Callback.BuildJobDetailsFetched <|
                                 Ok
@@ -183,7 +182,7 @@ all =
                 Models.Model
                 -> ( Models.Model, List Effects.Effect )
             fetchJobDetailsNoTrigger =
-                flip (,) []
+                (\a -> (\a b -> ( a, b )) a [])
                     >> (Build.handleCallback <|
                             Callback.BuildJobDetailsFetched <|
                                 Ok
@@ -207,7 +206,7 @@ all =
 
             fetchHistory : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchHistory =
-                flip (,) []
+                (\a -> (\a b -> ( a, b )) a [])
                     >> Build.handleCallback
                         (Callback.BuildHistoryFetched
                             (Ok
@@ -1190,7 +1189,7 @@ all =
                                 [ attribute <|
                                     Attr.attribute "aria-label" "Trigger Build"
                                 ]
-                    , updateFunc = \msg -> flip (,) [] >> Build.update msg >> Tuple.first
+                    , updateFunc = \msg -> (\a -> (\a b -> ( a, b )) a []) >> Build.update msg >> Tuple.first
                     , unhoveredSelector =
                         { description = "grey plus icon"
                         , selector =
@@ -1349,7 +1348,7 @@ all =
                     in
                     givenBuildStarted
                         >> Tuple.first
-                        >> flip (,) []
+                        >> (\a -> (\a b -> ( a, b )) a [])
                         >> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1393,7 +1392,7 @@ all =
                     in
                     givenBuildStarted
                         >> Tuple.first
-                        >> flip (,) []
+                        >> (\a -> (\a b -> ( a, b )) a [])
                         >> Build.handleCallback
                             (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
@@ -1437,7 +1436,7 @@ all =
                     in
                     givenBuildStarted
                         >> Tuple.first
-                        >> flip (,) []
+                        >> (\a -> (\a b -> ( a, b )) a [])
                         >> Build.handleCallback
                             (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
@@ -1480,7 +1479,7 @@ all =
                             |> Tuple.first
                             |> fetchJobDetails
                             |> Tuple.first
-                            |> flip (,) []
+                            |> (\a -> (\a b -> ( a, b )) a [])
                             |> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
@@ -1522,7 +1521,7 @@ all =
                     fetchPlanWithGetStep =
                         givenBuildStarted
                             >> Tuple.first
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
@@ -1541,7 +1540,7 @@ all =
                     fetchPlanWithTaskStep =
                         givenBuildStarted
                             >> Tuple.first
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
@@ -1559,7 +1558,7 @@ all =
                     fetchPlanWithPutStep =
                         givenBuildStarted
                             >> Tuple.first
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
@@ -1577,7 +1576,7 @@ all =
                     fetchPlanWithGetStepWithFirstOccurrence =
                         givenBuildStarted
                             >> Tuple.first
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     let
@@ -1746,7 +1745,7 @@ all =
                                 (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                     , test "no tooltip before 1 second has passed" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.update
                                 (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
@@ -1763,14 +1762,14 @@ all =
                             >> Query.count (Expect.equal 0)
                     , test "1 second after hovering, tooltip appears" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.handleDelivery (ClockTicked OneSecond 0)
                             >> Tuple.first
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.update
                                 (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.handleDelivery (ClockTicked OneSecond 1)
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
@@ -1822,7 +1821,7 @@ all =
                                 ]
                     , test "mousing off yellow arrow triggers Hover message" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.update
                                 (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
@@ -1840,17 +1839,17 @@ all =
                                 (Message.Message.Hover Nothing)
                     , test "unhovering after tooltip appears dismisses" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.handleDelivery (ClockTicked OneSecond 0)
                             >> Tuple.first
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.update
                                 (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.handleDelivery (ClockTicked OneSecond 1)
                             >> Tuple.first
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.update (Message.Message.Hover Nothing)
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
@@ -1867,13 +1866,13 @@ all =
                     ]
                 , test "hovering one resource of several produces only a single tooltip" <|
                     fetchPlanWithGetStepWithFirstOccurrence
-                        >> flip (,) []
+                        >> (\a -> (\a b -> ( a, b )) a [])
                         >> Build.handleDelivery (ClockTicked OneSecond 0)
                         >> Tuple.first
-                        >> flip (,) []
+                        >> (\a -> (\a b -> ( a, b )) a [])
                         >> Build.update (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                         >> Tuple.first
-                        >> flip (,) []
+                        >> (\a -> (\a b -> ( a, b )) a [])
                         >> Build.handleDelivery (ClockTicked OneSecond 1)
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1882,7 +1881,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , test "successful step has a checkmark at the far right" <|
                     fetchPlanWithGetStep
-                        >> flip (,) []
+                        >> (\a -> (\a b -> ( a, b )) a [])
                         >> Build.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -1911,7 +1910,7 @@ all =
                             )
                 , test "get step lists resource version on the right" <|
                     fetchPlanWithGetStep
-                        >> flip (,) []
+                        >> (\a -> (\a b -> ( a, b )) a [])
                         >> Build.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -1934,7 +1933,7 @@ all =
                         >> Query.has [ text "v3.1.4" ]
                 , test "running step has loading spinner at the right" <|
                     fetchPlanWithTaskStep
-                        >> flip (,) []
+                        >> (\a -> (\a b -> ( a, b )) a [])
                         >> Build.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -1976,7 +1975,7 @@ all =
                             )
                 , test "cancelled step has no-entry circle at the right" <|
                     fetchPlanWithTaskStep
-                        >> flip (,) []
+                        >> (\a -> (\a b -> ( a, b )) a [])
                         >> Build.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -1991,7 +1990,7 @@ all =
                                       , data =
                                             STModels.BuildStatus
                                                 Concourse.BuildStatusAborted
-                                                (Date.fromTime 0)
+                                                (Time.posixFromMillis 0)
                                       }
                                     ]
                             )
@@ -2010,7 +2009,7 @@ all =
                             )
                 , test "interrupted step has dashed circle with dot at the right" <|
                     fetchPlanWithTaskStep
-                        >> flip (,) []
+                        >> (\a -> (\a b -> ( a, b )) a [])
                         >> Build.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -2018,7 +2017,7 @@ all =
                                       , data =
                                             STModels.BuildStatus
                                                 Concourse.BuildStatusAborted
-                                                (Date.fromTime 0)
+                                                (Time.posixFromMillis 0)
                                       }
                                     ]
                             )
@@ -2037,7 +2036,7 @@ all =
                             )
                 , test "failing step has an X at the far right" <|
                     fetchPlanWithGetStep
-                        >> flip (,) []
+                        >> (\a -> (\a b -> ( a, b )) a [])
                         >> Build.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -2068,7 +2067,7 @@ all =
                             )
                 , test "erroring step has orange exclamation triangle at right" <|
                     fetchPlanWithGetStep
-                        >> flip (,) []
+                        >> (\a -> (\a b -> ( a, b )) a [])
                         >> Build.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -2098,7 +2097,7 @@ all =
                 , describe "erroring build" <|
                     [ test "has orange exclamation triangle at left" <|
                         fetchPlanWithGetStep
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.handleDelivery
                                 (EventsReceived <|
                                     Ok <|
@@ -2140,7 +2139,7 @@ all =
                                 "http://localhost:8080/api/v1/builds/307/events"
                         in
                         fetchPlanWithGetStep
-                            >> flip (,) []
+                            >> (\a -> (\a b -> ( a, b )) a [])
                             >> Build.handleDelivery
                                 (EventsReceived <|
                                     Ok

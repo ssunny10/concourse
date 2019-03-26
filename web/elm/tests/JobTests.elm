@@ -10,7 +10,6 @@ import DashboardTests
         , iconSelector
         , middleGrey
         )
-import Date
 import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr
@@ -60,10 +59,10 @@ all =
                     , job = Just someJobInfo
                     , status = BuildStatusSucceeded
                     , duration =
-                        { startedAt = Just (Date.fromTime 0)
-                        , finishedAt = Just (Date.fromTime 0)
+                        { startedAt = Just (Time.posixFromMillis 0)
+                        , finishedAt = Just (Time.posixFromMillis 0)
                         }
-                    , reapTime = Just (Date.fromTime 0)
+                    , reapTime = Just (Time.posixFromMillis 0)
                     }
 
                 someJob : Concourse.Job

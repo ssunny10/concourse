@@ -19,8 +19,7 @@ import Char
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination exposing (Paginated)
-import Date exposing (Date)
-import Date.Format
+import DateFormat
 import Debug
 import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
@@ -42,7 +41,6 @@ import Html.Attributes
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
 import Http
-import Keyboard
 import Keycodes
 import List.Extra
 import Login.Login as Login
@@ -242,7 +240,7 @@ handleCallback action ( model, effects ) =
             handleBuildPrepFetched browsingIndex buildPrep ( model, effects )
 
         BuildPrepFetched (Err err) ->
-            flip always (Debug.log "failed to fetch build preparation" err) <|
+            (\a -> always a (Debug.log "failed to fetch build preparation" err)) <|
                 ( model, effects )
 
         PlanAndResourcesFetched buildId result ->
@@ -258,7 +256,7 @@ handleCallback action ( model, effects ) =
                 )
 
         BuildHistoryFetched (Err err) ->
-            flip always (Debug.log "failed to fetch build history" err) <|
+            (\a -> always a (Debug.log "failed to fetch build history" err)) <|
                 ( { model | fetchingHistory = False }, effects )
 
         BuildHistoryFetched (Ok history) ->
@@ -268,7 +266,7 @@ handleCallback action ( model, effects ) =
             handleBuildJobFetched job ( model, effects )
 
         BuildJobDetailsFetched (Err err) ->
-            flip always (Debug.log "failed to fetch build job details" err) <|
+            (\a -> always a (Debug.log "failed to fetch build job details" err)) <|
                 ( model, effects )
 
         _ ->
@@ -497,7 +495,7 @@ updateOutput updater ( model, effects ) =
             ( model, effects )
 
 
-handleKeyPressed : Keyboard.KeyCode -> ET Model
+handleKeyPressed : Keycodes.KeyCode -> ET Model
 handleKeyPressed key ( model, effects ) =
     let
         currentBuild =
@@ -940,9 +938,9 @@ viewBuildPage model =
             LoadingIndicator.view
 
 
-mmDDYY : Date -> String
+mmDDYY : Time.Posix -> String
 mmDDYY d =
-    Date.Format.format "%m/%d/" d ++ String.right 2 (Date.Format.format "%Y" d)
+    DateFormat.format "%m/%d/" d ++ String.right 2 (DateFormat.format "%Y" d)
 
 
 viewBuildOutput : Concourse.Build -> Maybe OutputModel -> Html Message
@@ -962,18 +960,14 @@ viewBuildPrep prep =
             Html.div [ class "build-step" ]
                 [ Html.div
                     [ class "header"
-                    , style
-                        [ ( "display", "flex" )
-                        , ( "align-items", "center" )
-                        ]
+                    , style "display" "flex"
+                    , style "align-items" "center"
                     ]
                     [ Icon.icon
                         { sizePx = 15, image = "ic-cogs.svg" }
-                        [ style
-                            [ ( "margin", "6.5px" )
-                            , ( "margin-right", "0.5px" )
-                            , ( "background-size", "contain" )
-                            ]
+                        [ style "margin" "6.5px"
+                        , style "margin-right" "0.5px"
+                        , style "background-size" "contain"
                         ]
                     , Html.h3 [] [ Html.text "preparing build" ]
                     ]
@@ -1025,10 +1019,8 @@ viewBuildPrepLi text status details =
             ]
         ]
         [ Html.div
-            [ style
-                [ ( "align-items", "center" )
-                , ( "display", "flex" )
-                ]
+            [ style "align-items" "center"
+            , style "display" "flex"
             ]
             [ viewBuildPrepStatus status
             , Html.span []
@@ -1056,10 +1048,8 @@ viewBuildPrepStatus status =
                 { sizePx = 12
                 , image = "ic-not-blocking-check.svg"
                 }
-                [ style
-                    [ ( "margin-right", "5px" )
-                    , ( "background-size", "contain" )
-                    ]
+                [ style "margin-right" "5px"
+                , style "background-size" "contain"
                 , title "not blocking"
                 ]
 
@@ -1185,7 +1175,7 @@ viewBuildHeader build model =
                         Html.text ""
                 ]
             , Html.div
-                [ style [ ( "display", "flex" ) ] ]
+                [ style "display" "flex" ]
                 [ abortButton, triggerButton ]
             ]
         , Html.div
@@ -1220,9 +1210,9 @@ viewHistoryItem currentBuild build =
         ]
 
 
-durationTitle : Date -> List (Html Message) -> Html Message
+durationTitle : Time.Posix -> List (Html Message) -> Html Message
 durationTitle date content =
-    Html.div [ title (Date.Format.format "%b" date) ] content
+    Html.div [ title (DateFormat.format "%b" date) ] content
 
 
 handleOutMsg : Build.Output.Output.OutMsg -> ET Model

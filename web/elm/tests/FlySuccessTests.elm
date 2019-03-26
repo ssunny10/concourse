@@ -76,7 +76,7 @@ steps =
 
 setup : String -> SetupSteps -> Setup
 setup =
-    (,)
+    \a b -> ( a, b )
 
 
 whenOnFlySuccessPage : Setup

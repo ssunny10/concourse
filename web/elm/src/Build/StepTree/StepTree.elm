@@ -34,8 +34,7 @@ import Build.StepTree.Models
         )
 import Build.Styles as Styles
 import Concourse
-import Date exposing (Date)
-import Date.Format
+import DateFormat
 import Debug
 import Dict exposing (Dict)
 import Html exposing (Html)
@@ -476,12 +475,12 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
             , onClick (ToggleStep id)
             ]
             [ Html.div
-                [ style [ ( "display", "flex" ) ] ]
+                [ style "display" "flex" ]
                 [ viewStepHeaderIcon headerType (model.tooltip == Just id) id
                 , Html.h3 [] [ Html.text name ]
                 ]
             , Html.div
-                [ style [ ( "display", "flex" ) ] ]
+                [ style "display" "flex" ]
                 [ viewVersion version
                 , viewStepState state
                 ]
@@ -511,12 +510,12 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
         ]
 
 
-viewLogs : Ansi.Log.Model -> Dict Int Date -> Highlight -> String -> List (Html Message)
+viewLogs : Ansi.Log.Model -> Dict Int Time.Posix -> Highlight -> String -> List (Html Message)
 viewLogs { lines } timestamps hl id =
     Array.toList <| Array.indexedMap (\idx -> viewTimestampedLine timestamps hl id (idx + 1)) lines
 
 
-viewTimestampedLine : Dict Int Date -> Highlight -> StepID -> Int -> Ansi.Log.Line -> Html Message
+viewTimestampedLine : Dict Int Time.Posix -> Highlight -> StepID -> Int -> Ansi.Log.Line -> Html Message
 viewTimestampedLine timestamps hl id lineNo line =
     let
         highlighted =
@@ -551,7 +550,7 @@ viewLine line =
         ]
 
 
-viewTimestamp : Highlight -> String -> ( Int, Maybe Date ) -> Html Message
+viewTimestamp : Highlight -> String -> ( Int, Maybe Time.Posix ) -> Html Message
 viewTimestamp hl id ( line, date ) =
     Html.a
         [ href (showHighlight (HighlightLine id line))
@@ -559,7 +558,7 @@ viewTimestamp hl id ( line, date ) =
         ]
         [ case date of
             Just date ->
-                Html.td [ class "timestamp", attribute "data-timestamp" (Date.Format.format "%H:%M:%S" date) ] []
+                Html.td [ class "timestamp", attribute "data-timestamp" (DateFormat.format "%H:%M:%S" date) ] []
 
             _ ->
                 Html.td [ class "timestamp placeholder" ] []
@@ -583,7 +582,7 @@ viewMetadata =
                     Html.a
                         [ href value
                         , target "_blank"
-                        , style [ ( "text-decoration-line", "underline" ) ]
+                        , style "text-decoration-line" "underline"
                         ]
                         [ Html.text value ]
 

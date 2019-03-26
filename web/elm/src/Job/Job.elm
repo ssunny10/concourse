@@ -432,16 +432,12 @@ viewMainJobsSection model =
                 Html.div [ class "fixed-header" ]
                     [ Html.div
                         [ class "build-header"
-                        , style
-                            [ ( "display", "flex" )
-                            , ( "justify-content", "space-between" )
-                            , ( "background"
-                              , Colors.buildStatusColor True <| headerBuildStatus job.finishedBuild
-                              )
-                            ]
+                        , style "display" "flex"
+                        , style "justify-content" "space-between"
+                        , style "background" (Colors.buildStatusColor True <| headerBuildStatus job.finishedBuild)
                         ]
                         [ Html.div
-                            [ style [ ( "display", "flex" ) ] ]
+                            [ style "display" "flex" ]
                             [ Html.button
                                 [ id "pause-toggle"
                                 , style <|
@@ -505,19 +501,15 @@ viewMainJobsSection model =
                         ]
                     , Html.div
                         [ id "pagination-header"
-                        , style
-                            [ ( "display", "flex" )
-                            , ( "justify-content", "space-between" )
-                            , ( "align-items", "stretch" )
-                            , ( "height", "60px" )
-                            , ( "background-color", Colors.secondaryTopBar )
-                            ]
+                        , style "display" "flex"
+                        , style "justify-content" "space-between"
+                        , style "align-items" "stretch"
+                        , style "height" "60px"
+                        , style "background-color" Colors.secondaryTopBar
                         ]
                         [ Html.h1
-                            [ style
-                                [ ( "margin", "0 18px" )
-                                , ( "font-weight", "700" )
-                                ]
+                            [ style "margin" "0 18px"
+                            , style "font-weight" "700"
                             ]
                             [ Html.text "builds" ]
                         , viewPaginationBar model
@@ -549,10 +541,8 @@ viewPaginationBar : Model -> Html Message
 viewPaginationBar model =
     Html.div
         [ id "pagination"
-        , style
-            [ ( "display", "flex" )
-            , ( "align-items", "stretch" )
-            ]
+        , style "display" "flex"
+        , style "align-items" "stretch"
         ]
         [ case model.buildsWithResources.pagination.previousPage of
             Nothing ->

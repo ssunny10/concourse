@@ -144,20 +144,20 @@ footerView : UserState -> Pipeline -> Time -> Bool -> Html Message
 footerView userState pipeline now hovered =
     let
         spacer =
-            Html.div [ style [ ( "width", "13.5px" ) ] ] []
+            Html.div [ style "width" "13.5px" ] []
     in
     Html.div
         [ class "card-footer"
         , style Styles.pipelineCardFooter
         ]
         [ Html.div
-            [ style [ ( "display", "flex" ) ]
+            [ style "display" "flex"
             ]
             [ PipelineStatus.icon pipeline.status
             , transitionView now pipeline
             ]
         , Html.div
-            [ style [ ( "display", "flex" ) ]
+            [ style "display" "flex"
             ]
           <|
             List.intersperse spacer
@@ -188,7 +188,7 @@ visibilityView public =
             else
                 "baseline-visibility-off-24px.svg"
         }
-        [ style [ ( "background-size", "contain" ) ] ]
+        [ style "background-size" "contain" ]
 
 
 sinceTransitionText : PipelineStatus.StatusDetails -> Time -> String

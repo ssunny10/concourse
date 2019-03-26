@@ -11,7 +11,6 @@ import DashboardTests
         , iconSelector
         , middleGrey
         )
-import Date
 import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr
@@ -3107,7 +3106,7 @@ all =
                                         , failingToCheck = False
                                         , checkError = ""
                                         , checkSetupError = ""
-                                        , lastChecked = Just (Date.fromTime 0)
+                                        , lastChecked = Just (Time.posixFromMillis 0)
                                         , pinnedVersion = Nothing
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
@@ -3289,7 +3288,7 @@ givenResourceIsNotPinned =
                 , failingToCheck = False
                 , checkError = ""
                 , checkSetupError = ""
-                , lastChecked = Just (Date.fromTime 0)
+                , lastChecked = Just (Time.posixFromMillis 0)
                 , pinnedVersion = Nothing
                 , pinnedInConfig = False
                 , pinComment = Nothing

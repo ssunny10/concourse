@@ -15,7 +15,6 @@ import Message.Message exposing (Message(..))
 import Message.Subscription exposing (Delivery(..))
 import Routes
 import ScreenSize exposing (ScreenSize)
-import Window
 
 
 searchInputId : String
@@ -80,11 +79,11 @@ showSearchInput ( model, effects ) =
             ( model, effects )
 
 
-screenResize : Window.Size -> Model -> Model
-screenResize size model =
+screenResize : Int -> Int -> Model -> Model
+screenResize width height model =
     let
         newSize =
-            ScreenSize.fromWindowSize size
+            ScreenSize.fromWindowSize width height
 
         newModel =
             { model | screenSize = newSize }
@@ -220,7 +219,7 @@ arrowUp options dropdown =
                 Just selectedIdx ->
                     let
                         newSelection =
-                            (selectedIdx - 1) % List.length options
+                            modBy (List.length options) (selectedIdx - 1)
                     in
                     Shown { selectedIdx = Just newSelection }
 
@@ -239,7 +238,7 @@ arrowDown options dropdown =
                 Just selectedIdx ->
                     let
                         newSelection =
-                            (selectedIdx + 1) % List.length options
+                            modBy (List.length options) (selectedIdx + 1)
                     in
                     Shown { selectedIdx = Just newSelection }
 

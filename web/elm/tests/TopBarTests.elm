@@ -52,7 +52,7 @@ it desc expectationFunc subject =
 
 update : Msgs.Message -> Login.Model {} -> ( Login.Model {}, List Effects.Effect )
 update msg =
-    flip (,) [] >> Login.update msg
+    (\a -> (\a b -> ( a, b )) a []) >> Login.update msg
 
 
 lineHeight : String

@@ -24,8 +24,7 @@ import Concourse.Pagination
         , chevronContainer
         , equal
         )
-import Date exposing (Date)
-import Date.Format
+import DateFormat
 import Dict
 import Duration exposing (Duration)
 import EffectTransformer exposing (ET)
@@ -331,7 +330,7 @@ handleCallback action ( model, effects ) =
                     )
 
         VersionedResourcesFetched (Err err) ->
-            flip always (Debug.log "failed to fetch versioned resources" err) <|
+            (\a -> always a (Debug.log "failed to fetch versioned resources" err)) <|
                 ( model, effects )
 
         InputToFetched (Ok ( versionID, builds )) ->
@@ -914,7 +913,7 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
 
         checkBar =
             Html.div
-                [ style [ ( "display", "flex" ) ] ]
+                [ style "display" "flex" ]
                 [ checkButton model
                 , statusBar
                 ]
@@ -987,7 +986,7 @@ commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLo
             let
                 version =
                     viewVersion
-                        [ Html.Attributes.style [ ( "align-self", "center" ) ] ]
+                        [ Html.Attributes.style "align-self" "center" ]
                         v
             in
             Html.div
@@ -1069,7 +1068,7 @@ commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLo
                         , Html.pre
                             [ style Resource.Styles.commentText ]
                             [ Html.text commentState.pristineComment ]
-                        , Html.div [ style [ ( "height", "24px" ) ] ] []
+                        , Html.div [ style "height" "24px" ] []
                         ]
                 ]
 
@@ -1204,19 +1203,17 @@ viewVersionedResource { version, pinnedVersion, hovered } =
     Html.li
         (case ( pinState, version.enabled ) of
             ( Disabled, _ ) ->
-                [ style [ ( "opacity", "0.5" ) ] ]
+                [ style "opacity" "0.5" ]
 
             ( _, Models.Disabled ) ->
-                [ style [ ( "opacity", "0.5" ) ] ]
+                [ style "opacity" "0.5" ]
 
             _ ->
                 []
         )
         ([ Html.div
-            [ style
-                [ ( "display", "flex" )
-                , ( "margin", "5px 0px" )
-                ]
+            [ style "display" "flex"
+            , style "margin" "5px 0px"
             ]
             [ viewEnabledCheckbox
                 { enabled = version.enabled
@@ -1258,19 +1255,17 @@ viewVersionBody :
     -> Html Message
 viewVersionBody { inputTo, outputOf, metadata } =
     Html.div
-        [ style
-            [ ( "display", "flex" )
-            , ( "padding", "5px 10px" )
-            ]
+        [ style "display" "flex"
+        , style "padding" "5px 10px"
         ]
         [ Html.div [ class "vri" ] <|
             List.concat
-                [ [ Html.div [ style [ ( "line-height", "25px" ) ] ] [ Html.text "inputs to" ] ]
+                [ [ Html.div [ style "line-height" "25px" ] [ Html.text "inputs to" ] ]
                 , viewBuilds <| listToMap inputTo
                 ]
         , Html.div [ class "vri" ] <|
             List.concat
-                [ [ Html.div [ style [ ( "line-height", "25px" ) ] ] [ Html.text "outputs of" ] ]
+                [ [ Html.div [ style "line-height" "25px" ] [ Html.text "outputs of" ] ]
                 , viewBuilds <| listToMap outputOf
                 ]
         , Html.div [ class "vri metadata-container" ]
@@ -1442,17 +1437,17 @@ viewBuilds buildDict =
     List.concatMap (viewBuildsByJob buildDict) <| Dict.keys buildDict
 
 
-viewLastChecked : Time -> Date -> Html a
+viewLastChecked : Time -> Time.Posix -> Html a
 viewLastChecked now date =
     let
         ago =
-            Duration.between (Date.toTime date) now
+            Duration.between (Time.posixToMillis date) now
     in
     Html.table [ id "last-checked" ]
         [ Html.tr
             []
             [ Html.td [] [ Html.text "checked" ]
-            , Html.td [ title (Date.Format.format "%b %d %Y %I:%M:%S %p" date) ]
+            , Html.td [ title (DateFormat.format "%b %d %Y %I:%M:%S %p" date) ]
                 [ Html.span [] [ Html.text (Duration.format ago ++ " ago") ] ]
             ]
         ]

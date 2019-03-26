@@ -158,7 +158,7 @@ legend model =
                             , image = "ic-running-legend.svg"
                             }
                             []
-                        , Html.div [ style [ ( "width", "10px" ) ] ] []
+                        , Html.div [ style "width" "10px" ] []
                         , Html.text "running"
                         ]
                    ]
@@ -181,7 +181,7 @@ concourseInfo { version, hovered } =
             [ Html.text <| "version: v" ++ version ]
         , Html.div [ style Styles.infoItem ] <|
             [ Html.span
-                [ style [ ( "margin-right", "10px" ) ] ]
+                [ style "margin-right" "10px" ]
                 [ Html.text "cli: " ]
             ]
                 ++ List.map (cliIcon hovered) Cli.clis
@@ -197,7 +197,7 @@ legendItem : PipelineStatus -> Html Message
 legendItem status =
     Html.div [ style Styles.legendItem ]
         [ PipelineStatus.icon status
-        , Html.div [ style [ ( "width", "10px" ) ] ] []
+        , Html.div [ style "width" "10px" ] []
         , Html.text <| PipelineStatus.show status
         ]
 

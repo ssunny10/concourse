@@ -22,7 +22,6 @@ import Build.StepTree.StepTree
 import Build.Styles as Styles
 import Concourse
 import Concourse.BuildStatus
-import Date exposing (Date)
 import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes
@@ -46,7 +45,7 @@ import Views.NotAuthorized as NotAuthorized
 
 type OutMsg
     = OutNoop
-    | OutBuildStatus Concourse.BuildStatus Date
+    | OutBuildStatus Concourse.BuildStatus Time.Posix
 
 
 type alias Flags =
@@ -120,7 +119,7 @@ planAndResourcesFetched buildId result model =
                         model
 
                 _ ->
-                    flip always (Debug.log "failed to fetch plan" err) <|
+                    (\a -> always a (Debug.log "failed to fetch plan" err)) <|
                         model
 
         Ok ( plan, resources ) ->
@@ -145,7 +144,7 @@ handleEnvelopes action model =
                 |> List.foldr handleEnvelope ( model, [], OutNoop )
 
         Err err ->
-            flip always (Debug.log "failed to get event" err) <|
+            (\a -> always a (Debug.log "failed to get event" err)) <|
                 ( model, [], OutNoop )
 
 
@@ -273,9 +272,9 @@ setRunning =
     setStepState StepStateRunning
 
 
-appendStepLog : String -> Maybe Date -> StepTree -> StepTree
+appendStepLog : String -> Maybe Time.Posix -> StepTree -> StepTree
 appendStepLog output mtime tree =
-    flip StepTree.map tree <|
+    (\a -> StepTree.map a tree) <|
         \step ->
             let
                 outputLineCount =

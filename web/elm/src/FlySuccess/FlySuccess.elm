@@ -197,7 +197,7 @@ button { tokenTransfer, authToken, buttonState } =
             , image = "clippy.svg"
             }
             [ id "copy-icon"
-            , style [ ( "margin-right", "5px" ) ]
+            , style "margin-right" "5px"
             ]
         , Html.text <| Text.button buttonState
         ]

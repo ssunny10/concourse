@@ -34,7 +34,6 @@ import Dashboard.Group.Tag as Tag
 import Dashboard.Models as Models exposing (DragState(..), DropState(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
-import Date exposing (Date)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onMouseEnter)
@@ -272,15 +271,9 @@ jobStatus job =
             Concourse.BuildStatusPending
 
 
-transition : Concourse.Job -> Maybe Time
-transition job =
-    case job.transitionBuild of
-        Just build ->
-            build.duration.finishedAt
-                |> Maybe.map Date.toTime
-
-        Nothing ->
-            Nothing
+transition : Concourse.Job -> Maybe Time.Posix
+transition =
+    .transitionBuild >> Maybe.map (.duration >> .finishedAt)
 
 
 shiftPipelines : Int -> Int -> Group -> Group
@@ -433,7 +426,8 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
         , attribute "data-team-name" group.teamName
         ]
         [ Html.div
-            [ style [ ( "display", "flex" ), ( "align-items", "center" ) ]
+            [ style "display" "flex"
+            , style "align-items" "center"
             , class <| .sectionHeaderClass Effects.stickyHeaderConfig
             ]
             ([ Html.div

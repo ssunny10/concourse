@@ -64,7 +64,7 @@ import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
 import Monocle.Optional
 import MonocleHelpers exposing (..)
-import Regex exposing (HowMany(All), regex, replace)
+import Regex exposing (HowMany(..), regex, replace)
 import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize(..))
@@ -193,7 +193,7 @@ handleCallback msg ( model, effects ) =
             )
 
         LoggedOut (Err err) ->
-            flip always (Debug.log "failed to log out" err) <|
+            (\a -> always a (Debug.log "failed to log out" err)) <|
                 ( model, effects )
 
         ScreenResized size ->
@@ -292,9 +292,11 @@ updateBody msg ( model, effects ) =
                 dragDropOptional : Monocle.Optional.Optional Model ( Models.DragState, Models.DropState )
                 dragDropOptional =
                     substateOptional
-                        =|> Monocle.Lens.tuple
+                        |> Monocle.Optional.composeLens
+                            (Monocle.Lens.tuple
                                 Details.dragStateLens
                                 Details.dropStateLens
+                            )
 
                 dragDropIndexOptional : Monocle.Optional.Optional Model ( Group.PipelineIndex, Group.PipelineIndex )
                 dragDropIndexOptional =
@@ -310,12 +312,17 @@ updateBody msg ( model, effects ) =
                 groupOptional : Monocle.Optional.Optional Model Group
                 groupOptional =
                     (substateOptional
-                        =|> Details.dragStateLens
-                        => Group.teamNameOptional
+                        |> Monocle.Optional.composeLens
+                            (Details.dragStateLens
+                                => Group.teamNameOptional
+                            )
                     )
-                        >>= (\teamName ->
+                        |> bind
+                            (\teamName ->
                                 groupsLens
-                                    <|= Group.findGroupOptional teamName
+                                    |> Monocle.Optional.fromLens
+                                    |> Monocle.Optional.compose
+                                        (Group.findGroupOptional teamName)
                             )
 
                 bigOptional : Monocle.Optional.Optional Model ( ( Group.PipelineIndex, Group.PipelineIndex ), Group )
@@ -496,14 +503,12 @@ welcomeCard { hovered, groups, userState } =
                 [ style Styles.welcomeCardBody ]
               <|
                 [ Html.div
-                    [ style
-                        [ ( "display", "flex" )
-                        , ( "align-items", "center" )
-                        ]
+                    [ style "display" "flex"
+                    , style "align-items" "center"
                     ]
                   <|
                     [ Html.div
-                        [ style [ ( "margin-right", "10px" ) ] ]
+                        [ style "margin-right" "10px" ]
                         [ Html.text Text.cliInstructions ]
                     ]
                         ++ List.map (cliIcon hovered) Cli.clis
@@ -530,12 +535,12 @@ loginInstruction userState =
         _ ->
             [ Html.div
                 [ id "login-instruction"
-                , style [ ( "line-height", "42px" ) ]
+                , style "line-height" "42px"
                 ]
                 [ Html.text "login "
                 , Html.a
                     [ href "/login"
-                    , style [ ( "text-decoration", "underline" ) ]
+                    , style "text-decoration" "underline"
                     ]
                     [ Html.text "here" ]
                 ]
@@ -627,7 +632,7 @@ filterTerms =
 
 filter : String -> List Group -> List Group
 filter =
-    filterTerms >> flip (List.foldl filterGroupsByTerm)
+    filterTerms >> (\b a -> List.foldl filterGroupsByTerm a b)
 
 
 filterPipelinesByTerm : String -> Group -> Group

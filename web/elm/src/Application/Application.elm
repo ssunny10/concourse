@@ -16,7 +16,6 @@ import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Message.TopLevelMessage as Msgs exposing (TopLevelMessage(..))
-import Navigation
 import Routes
 import SubPage.SubPage as SubPage
 import UserState exposing (UserState(..))
@@ -43,7 +42,7 @@ type alias Model =
     }
 
 
-init : Flags -> Navigation.Location -> ( Model, List Effect )
+init : Flags -> Url.Url -> Navigation.Key -> ( Model, List Effect )
 init flags location =
     let
         route =
@@ -82,7 +81,7 @@ init flags location =
     ( model, [ FetchUser ] ++ handleTokenEffect ++ subEffects )
 
 
-locationMsg : Navigation.Location -> TopLevelMessage
+locationMsg : Url.Url -> TopLevelMessage
 locationMsg =
     Routes.parsePath >> RouteChanged >> DeliveryReceived
 

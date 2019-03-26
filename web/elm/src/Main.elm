@@ -1,16 +1,16 @@
 module Main exposing (main)
 
 import Application.Application as Application
+import Browser
 import Concourse
 import Message.Effects as Effects
 import Message.Subscription as Subscription
 import Message.TopLevelMessage as Msgs
-import Navigation
 
 
 main : Program Application.Flags Application.Model Msgs.TopLevelMessage
 main =
-    Navigation.programWithFlags Application.locationMsg
+    Browser.application Application.locationMsg
         { init = \flags -> Application.init flags >> effectsToCmd
         , update = \msg -> Application.update msg >> effectsToCmd
         , view = Application.view

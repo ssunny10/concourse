@@ -17,7 +17,6 @@ import Concourse
 import Concourse.Cli as Cli
 import Dashboard.Dashboard as Dashboard
 import Dashboard.Models as Models
-import Date exposing (Date)
 import Dict
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
@@ -3063,7 +3062,7 @@ all =
 
 handleCallback : Callback.Callback -> Models.Model -> ( Models.Model, List Effects.Effect )
 handleCallback callback =
-    flip (,) [] >> Dashboard.handleCallback callback
+    (\a -> (\a b -> ( a, b )) a []) >> Dashboard.handleCallback callback
 
 
 afterSeconds : Int -> Application.Model -> Application.Model
@@ -3449,7 +3448,7 @@ jobWithNameTransitionedAt jobName transitionedAt status =
                     , status = status
                     , duration =
                         { startedAt = Nothing
-                        , finishedAt = Just <| Date.fromTime t
+                        , finishedAt = Just <| Time.posixFromMillis t
                         }
                     , reapTime = Nothing
                     }
@@ -3502,7 +3501,7 @@ circularJobs =
                 , status = Concourse.BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
-                    , finishedAt = Just <| Date.fromTime 0
+                    , finishedAt = Just <| Time.posixFromMillis 0
                     }
                 , reapTime = Nothing
                 }
@@ -3556,7 +3555,7 @@ circularJobs =
                 , status = Concourse.BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
-                    , finishedAt = Just <| Date.fromTime 0
+                    , finishedAt = Just <| Time.posixFromMillis 0
                     }
                 , reapTime = Nothing
                 }

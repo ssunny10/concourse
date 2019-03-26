@@ -269,7 +269,7 @@ handleCallback callback ( model, effects ) =
             )
 
         VersionFetched (Err err) ->
-            flip always (Debug.log "failed to fetch version" err) <|
+            (\a -> always a (Debug.log "failed to fetch version" err)) <|
                 ( { model | experiencingTurbulence = True }, effects )
 
         _ ->
@@ -374,7 +374,7 @@ subscriptions model =
 
 view : UserState -> Model -> Html Message
 view userState model =
-    Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]
+    Html.div [ Html.Attributes.style "height" "100%" ]
         [ Html.div
             [ Html.Attributes.style Views.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
@@ -549,8 +549,7 @@ viewSubPage model =
                     , Html.dt [ class "paused" ] []
                     , Html.dd [] [ Html.text "paused" ]
                     , Html.dt
-                        [ Html.Attributes.style
-                            [ ( "background-color", Colors.pinned ) ]
+                        [ Html.Attributes.style "background-color" Colors.pinned
                         ]
                         []
                     , Html.dd [] [ Html.text "pinned" ]
@@ -669,7 +668,7 @@ jobAppearsInGroups groupNames pi jobJson =
             anyIntersect cj.groups groupNames
 
         Err err ->
-            flip always (Debug.log "failed to check if job is in group" err) <|
+            (\a -> always a (Debug.log "failed to check if job is in group" err)) <|
                 False
 
 
